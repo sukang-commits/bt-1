@@ -23,7 +23,7 @@ public static class GameSceneBuilder
     private const float PlayerRadius = 0.5f;
     private const float PlayerStartX = -2f;
 
-    [MenuItem("Tools/병아리 점프 게임/게임 씬 자동 생성")]
+    [MenuItem("Tools/꿀벌 점프 게임/게임 씬 자동 생성")]
     public static void BuildGameScene()
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
@@ -35,8 +35,8 @@ public static class GameSceneBuilder
         EnsureTags();
         ConfigurePlayerSettings();
 
-        Sprite circleSprite = GetOrCreateSprite(SpritesFolder + "/circle.png", true);
-        Sprite squareSprite = GetOrCreateSprite(SpritesFolder + "/square.png", false);
+        Sprite beeSprite = GetOrCreateBeeSprite(SpritesFolder + "/bee.png");
+        Sprite squareSprite = GetOrCreateSquareSprite(SpritesFolder + "/square.png");
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -44,7 +44,7 @@ public static class GameSceneBuilder
         CreateBackground(squareSprite);
         CreateGround(squareSprite);
 
-        var playerInfo = CreatePlayer(circleSprite);
+        var playerInfo = CreatePlayer(beeSprite);
         PlayerController playerController = playerInfo.controller;
         Collider2D playerCollider = playerInfo.collider;
 
@@ -69,7 +69,7 @@ public static class GameSceneBuilder
         AddSceneToBuildSettings(ScenePath);
         AssetDatabase.SaveAssets();
 
-        Debug.Log("병아리 점프 게임 씬 생성 완료: " + ScenePath);
+        Debug.Log("꿀벌 점프 게임 씬 생성 완료: " + ScenePath);
     }
 
     private static void ConfigurePlayerSettings()
@@ -139,7 +139,7 @@ public static class GameSceneBuilder
         return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
     }
 
-    private static Sprite GetOrCreateSprite(string path, bool circle)
+    private static Sprite GetOrCreateSquareSprite(string path)
     {
         Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
         if (existing != null)
@@ -149,24 +149,136 @@ public static class GameSceneBuilder
 
         const int size = 128;
         Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        Vector2 center = new Vector2(size / 2f, size / 2f);
-        float radius = size / 2f - 2f;
-
-        for (int y = 0; y < size; y++)
+        Color[] fill = new Color[size * size];
+        for (int i = 0; i < fill.Length; i++)
         {
-            for (int x = 0; x < size; x++)
-            {
-                bool opaque = true;
-                if (circle)
-                {
-                    float dist = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
-                    opaque = dist <= radius;
-                }
-                tex.SetPixel(x, y, opaque ? new Color(1f, 1f, 1f, 1f) : new Color(1f, 1f, 1f, 0f));
-            }
+            fill[i] = Color.white;
         }
+        tex.SetPixels(fill);
         tex.Apply();
 
+        return SaveAndImportSprite(tex, path, size);
+    }
+
+    // Procedurally drawn bee mascot (hooded head, blushed face, striped body, wings, legs) so the
+    // project needs no imported art assets. Layered bottom-to-top: legs, body, belt, wings, head,
+    // antennae, face, cheeks, eyes, mouth.
+    private static Sprite GetOrCreateBeeSprite(string path)
+    {
+        Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        const int size = 300;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color[] clear = new Color[size * size];
+        tex.SetPixels(clear);
+
+        Color black = new Color(0.09f, 0.09f, 0.09f);
+        Color yellow = new Color(1f, 0.84f, 0.3f);
+        Color white = Color.white;
+        Color pink = new Color(1f, 0.68f, 0.68f);
+
+        float cx = size * 0.5f;
+
+        // Legs
+        FillEllipse(tex, cx - size * 0.10f, size * 0.07f, size * 0.06f, size * 0.08f, black);
+        FillEllipse(tex, cx + size * 0.10f, size * 0.07f, size * 0.06f, size * 0.08f, black);
+
+        // Body with a black belt band
+        FillEllipse(tex, cx, size * 0.32f, size * 0.30f, size * 0.22f, yellow);
+        FillEllipse(tex, cx, size * 0.32f, size * 0.30f, size * 0.22f, black, size * 0.29f, size * 0.35f);
+
+        // Wings (black outline behind a smaller white ellipse)
+        FillEllipse(tex, cx - size * 0.34f, size * 0.40f, size * 0.18f, size * 0.22f, black);
+        FillEllipse(tex, cx - size * 0.34f, size * 0.40f, size * 0.15f, size * 0.19f, white);
+        FillEllipse(tex, cx + size * 0.34f, size * 0.40f, size * 0.18f, size * 0.22f, black);
+        FillEllipse(tex, cx + size * 0.34f, size * 0.40f, size * 0.15f, size * 0.19f, white);
+
+        // Antennae nubs peeking above the hood
+        FillEllipse(tex, cx - size * 0.20f, size * 0.94f, size * 0.09f, size * 0.11f, black);
+        FillEllipse(tex, cx + size * 0.20f, size * 0.94f, size * 0.09f, size * 0.11f, black);
+
+        // Hood (black) with the face (yellow) inset lower, leaving a hood band at the top
+        FillEllipse(tex, cx, size * 0.68f, size * 0.30f, size * 0.30f, black);
+        FillEllipse(tex, cx, size * 0.63f, size * 0.26f, size * 0.26f, yellow);
+
+        // Cheeks
+        FillEllipse(tex, cx - size * 0.19f, size * 0.60f, size * 0.07f, size * 0.045f, pink);
+        FillEllipse(tex, cx + size * 0.19f, size * 0.60f, size * 0.07f, size * 0.045f, pink);
+
+        // Eyes with highlight dots
+        FillEllipse(tex, cx - size * 0.10f, size * 0.66f, size * 0.035f, size * 0.035f, black);
+        FillEllipse(tex, cx + size * 0.10f, size * 0.66f, size * 0.035f, size * 0.035f, black);
+        FillEllipse(tex, cx - size * 0.115f, size * 0.672f, size * 0.012f, size * 0.012f, white);
+        FillEllipse(tex, cx + size * 0.085f, size * 0.672f, size * 0.012f, size * 0.012f, white);
+
+        // Smile (bottom half of a thin ring)
+        FillSmileArc(tex, cx, size * 0.615f, size * 0.045f, size * 0.03f, black);
+
+        tex.Apply();
+
+        return SaveAndImportSprite(tex, path, size);
+    }
+
+    private static bool InEllipse(float x, float y, float cx, float cy, float rx, float ry)
+    {
+        float dx = (x - cx) / rx;
+        float dy = (y - cy) / ry;
+        return dx * dx + dy * dy <= 1f;
+    }
+
+    private static void FillEllipse(Texture2D tex, float cx, float cy, float rx, float ry, Color color)
+    {
+        FillEllipse(tex, cx, cy, rx, ry, color, float.NegativeInfinity, float.PositiveInfinity);
+    }
+
+    // yMin/yMax optionally restrict the fill to a horizontal band within the ellipse (used for the belt).
+    private static void FillEllipse(Texture2D tex, float cx, float cy, float rx, float ry, Color color, float yMin, float yMax)
+    {
+        int minX = Mathf.Max(0, Mathf.FloorToInt(cx - rx));
+        int maxX = Mathf.Min(tex.width - 1, Mathf.CeilToInt(cx + rx));
+        int minY = Mathf.Max(0, Mathf.FloorToInt(Mathf.Max(cy - ry, yMin)));
+        int maxY = Mathf.Min(tex.height - 1, Mathf.CeilToInt(Mathf.Min(cy + ry, yMax)));
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                if (InEllipse(x + 0.5f, y + 0.5f, cx, cy, rx, ry))
+                {
+                    tex.SetPixel(x, y, color);
+                }
+            }
+        }
+    }
+
+    private static void FillSmileArc(Texture2D tex, float cx, float cy, float rOuter, float rInner, Color color)
+    {
+        int minX = Mathf.Max(0, Mathf.FloorToInt(cx - rOuter));
+        int maxX = Mathf.Min(tex.width - 1, Mathf.CeilToInt(cx + rOuter));
+        int minY = Mathf.Max(0, Mathf.FloorToInt(cy - rOuter));
+        int maxY = Mathf.Min(tex.height - 1, Mathf.CeilToInt(cy));
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                float px = x + 0.5f;
+                float py = y + 0.5f;
+                float dist = Vector2.Distance(new Vector2(px, py), new Vector2(cx, cy));
+                if (dist <= rOuter && dist >= rInner)
+                {
+                    tex.SetPixel(x, y, color);
+                }
+            }
+        }
+    }
+
+    private static Sprite SaveAndImportSprite(Texture2D tex, string path, int pixelsPerUnit)
+    {
         byte[] png = tex.EncodeToPNG();
         Object.DestroyImmediate(tex);
 
@@ -179,7 +291,7 @@ public static class GameSceneBuilder
         {
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = size;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
             importer.filterMode = FilterMode.Bilinear;
@@ -238,12 +350,12 @@ public static class GameSceneBuilder
 
     private static PlayerInfo CreatePlayer(Sprite sprite)
     {
-        GameObject playerGO = new GameObject("Chicken");
+        GameObject playerGO = new GameObject("Bee");
         playerGO.tag = "Player";
 
         SpriteRenderer sr = playerGO.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
-        sr.color = new Color(1f, 0.85f, 0.2f);
+        sr.color = Color.white;
         sr.sortingOrder = 5;
 
         CircleCollider2D col = playerGO.AddComponent<CircleCollider2D>();
@@ -315,7 +427,7 @@ public static class GameSceneBuilder
         scaler.matchWidthOrHeight = 0.5f;
 
         GameObject startPanel = CreateFullscreenPanel("StartPanel", canvasGO.transform);
-        CreateText("Title", startPanel.transform, "병아리 점프", 90, TextAnchor.MiddleCenter,
+        CreateText("Title", startPanel.transform, "꿀벌 점프", 90, TextAnchor.MiddleCenter,
             new Vector2(0.5f, 0.75f), new Vector2(800f, 200f), Color.black);
         Text startBest = CreateText("BestScoreText", startPanel.transform, "최고 점수: 0", 48, TextAnchor.MiddleCenter,
             new Vector2(0.5f, 0.6f), new Vector2(800f, 100f), Color.black);

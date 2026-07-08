@@ -1,10 +1,10 @@
-# 병아리 점프 (Chicken Jump)
+# 꿀벌 점프 (Bee Jump)
 
-화면을 터치하면 병아리가 점프해서 장애물을 넘는 세로 화면(갤럭시 기준) 모바일 미니게임입니다.
+화면을 터치하면 꿀벌가 점프해서 장애물을 넘는 세로 화면(갤럭시 기준) 모바일 미니게임입니다.
 
 ## 게임 규칙
 
-- 화면을 터치(또는 에디터에서는 마우스 클릭)하면 병아리가 점프합니다.
+- 화면을 터치(또는 에디터에서는 마우스 클릭)하면 꿀벌가 점프합니다.
 - 장애물에 부딪히면 게임 오버됩니다.
 - 장애물을 완전히 넘으면 점수가 1점 증가합니다.
 - 최고 점수는 `PlayerPrefs`를 이용해 기기에 저장되며, 다음 실행에도 유지됩니다.
@@ -36,7 +36,7 @@ ProjectSettings/ProjectVersion.txt
      동일 버전이 없다면 Hub가 설치를 안내하거나, 보유 중인 2022.3 LTS 이상 버전으로
      그대로 열어도 정상 동작합니다 (없는 설정 파일은 Unity가 기본값으로 자동 생성합니다).
 2. 프로젝트가 열리면 상단 메뉴에서
-   **Tools → 병아리 점프 게임 → 게임 씬 자동 생성** 을 실행합니다.
+   **Tools → 꿀벌 점프 게임 → 게임 씬 자동 생성** 을 실행합니다.
 3. 실행이 끝나면 `Assets/Scenes/GameScene.unity` 씬과
    `Assets/Prefabs/Obstacle.prefab`, `Assets/Sprites/Generated/*.png`,
    Canvas/UI/게임 오브젝트들이 모두 자동으로 만들어지고 Build Settings에도 씬이 등록됩니다.
@@ -48,6 +48,7 @@ ProjectSettings/ProjectVersion.txt
 ## 자동 생성되는 내용
 
 - **Scene**: `GameScene` 하나로 시작/게임/게임오버 화면을 UI 패널 전환 방식으로 구성
+- **Sprite**: `Assets/Sprites/Generated/bee.png` (플레이어 캐릭터, 코드로 절차적 생성)
 - **Prefab**: `Obstacle.prefab` (장애물)
 - **Canvas**: `CanvasScaler`를 세로 기준 해상도(1080x1920, Scale With Screen Size)로 설정
 - **Tag**: `Player`, `Ground`, `Obstacle` 자동 등록
@@ -58,7 +59,7 @@ ProjectSettings/ProjectVersion.txt
 - `PlayerController.jumpForce` : 점프 힘
 - `ObstacleSpawner`의 `minSpawnInterval` / `maxSpawnInterval` / `baseSpeed` / `speedPerScore` /
   `maxSpeed` / `minHeightScale` / `maxHeightScale` : 장애물 생성 주기, 속도, 높이 범위
-- `Rigidbody2D.gravityScale` (Chicken 오브젝트) : 중력 크기
+- `Rigidbody2D.gravityScale` (Bee 오브젝트) : 중력 크기
 
 ## 콘솔 오류 관련 참고 사항
 
@@ -75,3 +76,14 @@ ProjectSettings/ProjectVersion.txt
 
 실제 기기(갤럭시)에서 빌드하기 전에는 Unity 에디터에서 한 번 Play 모드로 직접 실행해
 콘솔에 오류/경고가 없는지 최종 확인하는 것을 권장합니다.
+
+## 캐릭터 스프라이트 관련 참고 사항
+
+플레이어 캐릭터는 검은 후드+더듬이, 노란 얼굴, 볼터치, 흰 날개, 검은 띠가 있는 몸통, 다리로
+구성된 꿀벌 마스코트를 `GameSceneBuilder.cs`가 코드로 직접 그려서 `Assets/Sprites/Generated/bee.png`로
+저장합니다. 대화에 첨부해주신 실제 이미지 파일을 이 환경에서 직접 읽어올 방법이 없어 동일한 스타일을
+절차적으로 재현한 것이며, 픽셀 단위로 완전히 동일하지는 않습니다.
+
+원본 이미지를 그대로 쓰고 싶다면 해당 PNG 파일을 `Assets/Sprites/bee_source.png` 같은 경로로 프로젝트에
+직접 추가한 뒤, `GameSceneBuilder.GetOrCreateBeeSprite`가 새로 그리는 대신 그 파일을
+`AssetDatabase.LoadAssetAtPath<Sprite>(...)`로 불러오도록 한 줄만 바꾸면 됩니다.

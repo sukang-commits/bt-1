@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class HighScoreStorage
 {
-    private const string HighScoreKey = "ChickenJump_HighScore";
+    private const string HighScoreKey = "BeeJump_HighScore";
 
     public static int Load()
     {
