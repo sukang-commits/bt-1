@@ -100,7 +100,7 @@ public static class GameSceneBuilder
 
     private static void EnsureTags()
     {
-        AddTagIfMissing("Player");
+        // "Player" and "MainCamera" are already built-in Unity tags; only these two are custom.
         AddTagIfMissing("Ground");
         AddTagIfMissing("Obstacle");
     }
