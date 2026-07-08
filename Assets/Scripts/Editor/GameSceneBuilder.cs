@@ -161,8 +161,8 @@ public static class GameSceneBuilder
     }
 
     // Procedurally drawn bee mascot (hooded head, blushed face, striped body, wings, legs) so the
-    // project needs no imported art assets. Layered bottom-to-top: legs, body, belt, wings, head,
-    // antennae, face, cheeks, eyes, mouth.
+    // project needs no imported art assets. Layered bottom-to-top: legs, body, belt, wings,
+    // antennae, hood, face, cheeks, eyes, mouth.
     private static Sprite GetOrCreateBeeSprite(string path)
     {
         Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
