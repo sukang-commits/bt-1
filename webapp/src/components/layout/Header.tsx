@@ -1,18 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, LogOut } from "lucide-react";
 import type { SessionUser } from "@/types/domain";
 import { BRAND_LABELS, GRADE_LABELS, ROLE_LABELS } from "@/types/domain";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 interface HeaderProps {
   user?: SessionUser | null;
   homeHref: string;
-  onLogout?: () => void;
   notificationCount?: number;
 }
 
-export function Header({ user, homeHref, onLogout, notificationCount = 0 }: HeaderProps) {
+export function Header({ user, homeHref, notificationCount = 0 }: HeaderProps) {
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  };
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
       <Link href={homeHref} className="flex items-center gap-2">
@@ -49,9 +61,10 @@ export function Header({ user, homeHref, onLogout, notificationCount = 0 }: Head
         {user && (
           <button
             type="button"
-            onClick={onLogout}
+            onClick={handleLogout}
+            disabled={loggingOut}
             aria-label="로그아웃"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-subtle"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-subtle disabled:opacity-50"
           >
             <LogOut className="h-5 w-5" />
           </button>

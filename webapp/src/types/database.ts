@@ -1,6 +1,12 @@
 // supabase/migrations의 스키마를 반영한 수기 작성 타입입니다.
 // 실제 프로젝트 연결 후에는 `supabase gen types typescript --linked`로 재생성해
 // 이 파일을 교체하는 것을 권장합니다.
+//
+// 주의: Row/Insert/Update 타입은 반드시 `type`(객체 리터럴) 형태로 선언해야 합니다.
+// `interface`는 선언 병합이 가능한 "열린" 타입이라 TypeScript가 Record<string, unknown>
+// 같은 인덱스 시그니처 타입에 대한 구조적 호환성을 추론하지 않고, 그 결과
+// supabase-js가 기대하는 GenericTable 제약을 만족하지 못해 모든 쿼리 결과가
+// never로 무너집니다.
 
 export type UserRoleEnum =
   | "worker"
@@ -51,12 +57,12 @@ export type ShiftCoverAcceptanceStatusEnum = "pending" | "approved" | "rejected"
 export type RankChangeTypeEnum = "promotion" | "demotion" | "honor_grant";
 export type AttachmentCategoryEnum = "notice" | "settlement" | "break" | "checklist" | "issue";
 
-interface Timestamps {
+type Timestamps = {
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface AttachmentRow {
+export type AttachmentRow = {
   id: string;
   category: AttachmentCategoryEnum;
   store_id: string | null;
@@ -68,35 +74,35 @@ export interface AttachmentRow {
   height: number | null;
   created_at: string;
   deleted_at: string | null;
-}
+};
 
-export interface ProfileRow extends Timestamps {
+export type ProfileRow = Timestamps & {
   id: string;
   name: string;
   phone: string | null;
   role: UserRoleEnum;
   brand_type: BrandTypeEnum;
   active: boolean;
-}
+};
 
-export interface StoreRow extends Timestamps {
+export type StoreRow = Timestamps & {
   id: string;
   code: string;
   name: string;
   brand_type: BrandTypeEnum;
   address: string | null;
   active: boolean;
-}
+};
 
-export interface StoreMemberRow {
+export type StoreMemberRow = {
   id: string;
   store_id: string;
   profile_id: string;
   is_primary: boolean;
   created_at: string;
-}
+};
 
-export interface NoticeRow extends Timestamps {
+export type NoticeRow = Timestamps & {
   id: string;
   title: string;
   content: string;
@@ -108,28 +114,28 @@ export interface NoticeRow extends Timestamps {
   ack_due_at: string | null;
   created_by: string;
   deleted_at: string | null;
-}
+};
 
-export interface NoticeStoreRow {
+export type NoticeStoreRow = {
   id: string;
   notice_id: string;
   store_id: string;
-}
+};
 
-export interface NoticeAttachmentRow {
+export type NoticeAttachmentRow = {
   id: string;
   notice_id: string;
   attachment_id: string;
-}
+};
 
-export interface NoticeReadRow {
+export type NoticeReadRow = {
   id: string;
   notice_id: string;
   profile_id: string;
   read_at: string;
-}
+};
 
-export interface ChecklistRow extends Timestamps {
+export type ChecklistRow = Timestamps & {
   id: string;
   store_id: string | null;
   brand_type: BrandTypeEnum;
@@ -137,9 +143,9 @@ export interface ChecklistRow extends Timestamps {
   name: string;
   active: boolean;
   deleted_at: string | null;
-}
+};
 
-export interface ChecklistItemRow extends Timestamps {
+export type ChecklistItemRow = Timestamps & {
   id: string;
   checklist_id: string;
   label: string;
@@ -151,9 +157,9 @@ export interface ChecklistItemRow extends Timestamps {
   sort_order: number;
   active: boolean;
   deleted_at: string | null;
-}
+};
 
-export interface ChecklistSubmissionRow extends Timestamps {
+export type ChecklistSubmissionRow = Timestamps & {
   id: string;
   checklist_id: string;
   store_id: string;
@@ -165,18 +171,18 @@ export interface ChecklistSubmissionRow extends Timestamps {
   reviewed_at: string | null;
   review_note: string | null;
   submitted_at: string;
-}
+};
 
-export interface ChecklistItemSubmissionRow extends Timestamps {
+export type ChecklistItemSubmissionRow = Timestamps & {
   id: string;
   submission_id: string;
   checklist_item_id: string;
   is_checked: boolean;
   photo_attachment_id: string | null;
   note: string | null;
-}
+};
 
-export interface SettlementRow extends Timestamps {
+export type SettlementRow = Timestamps & {
   id: string;
   store_id: string;
   profile_id: string;
@@ -194,9 +200,9 @@ export interface SettlementRow extends Timestamps {
   reviewed_at: string | null;
   revision_reason: string | null;
   extra_fields: Record<string, unknown>;
-}
+};
 
-export interface BreakRow extends Timestamps {
+export type BreakRow = Timestamps & {
   id: string;
   store_id: string;
   profile_id: string;
@@ -207,9 +213,9 @@ export interface BreakRow extends Timestamps {
   status: BreakStatusEnum;
   photo_attachment_id: string | null;
   note: string | null;
-}
+};
 
-export interface ShiftCoverRequestRow extends Timestamps {
+export type ShiftCoverRequestRow = Timestamps & {
   id: string;
   store_id: string;
   requested_by: string;
@@ -221,9 +227,9 @@ export interface ShiftCoverRequestRow extends Timestamps {
   is_urgent: boolean;
   status: ShiftCoverStatusEnum;
   cancelled_at: string | null;
-}
+};
 
-export interface ShiftCoverAcceptanceRow extends Timestamps {
+export type ShiftCoverAcceptanceRow = Timestamps & {
   id: string;
   request_id: string;
   accepted_by: string;
@@ -231,9 +237,9 @@ export interface ShiftCoverAcceptanceRow extends Timestamps {
   status: ShiftCoverAcceptanceStatusEnum;
   admin_approved_by: string | null;
   admin_approved_at: string | null;
-}
+};
 
-export interface QscScoreRow extends Timestamps {
+export type QscScoreRow = Timestamps & {
   id: string;
   store_id: string;
   year_month: string;
@@ -244,9 +250,9 @@ export interface QscScoreRow extends Timestamps {
   item_scores: Record<string, number>;
   admin_comment: string | null;
   created_by: string;
-}
+};
 
-export interface MonthlyAchievementRow extends Timestamps {
+export type MonthlyAchievementRow = Timestamps & {
   id: string;
   store_id: string;
   year_month: string;
@@ -258,9 +264,9 @@ export interface MonthlyAchievementRow extends Timestamps {
   achievement_rate: number;
   previous_month_diff: number | null;
   total_score: number | null;
-}
+};
 
-export interface WeeklyPerformanceRow extends Timestamps {
+export type WeeklyPerformanceRow = Timestamps & {
   id: string;
   store_id: string;
   profile_id: string | null;
@@ -269,18 +275,18 @@ export interface WeeklyPerformanceRow extends Timestamps {
   required_tasks_total: number;
   required_tasks_completed: number;
   performance_rate: number;
-}
+};
 
-export interface EmployeeRankRow extends Timestamps {
+export type EmployeeRankRow = Timestamps & {
   id: string;
   profile_id: string;
   grade: EmployeeGradeEnum;
   is_honor_grade: boolean;
   effective_from: string;
   updated_by: string | null;
-}
+};
 
-export interface RankHistoryRow {
+export type RankHistoryRow = {
   id: string;
   profile_id: string;
   previous_grade: EmployeeGradeEnum | null;
@@ -290,9 +296,9 @@ export interface RankHistoryRow {
   changed_by: string;
   effective_date: string;
   created_at: string;
-}
+};
 
-export interface AuditLogRow {
+export type AuditLogRow = {
   id: string;
   actor_id: string | null;
   action: string;
@@ -303,19 +309,22 @@ export interface AuditLogRow {
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
-}
+};
 
+// 현재는 embedded resource(foreign table) select를 쓰지 않으므로 Relationships는
+// 빈 배열로 둡니다. 조인 조회가 필요해지면 실제 FK에 맞는 GenericRelationship을 채워주세요.
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
   Row: Row;
   Insert: Insert;
   Update: Update;
+  Relationships: [];
 };
 
 // Row에서 created_at/updated_at처럼 DB 기본값이 있는 컬럼을 Insert 시 선택적으로 만들어 줍니다.
 type WithDefaults<Row, DefaultedKeys extends keyof Row> = Omit<Row, DefaultedKeys> &
   Partial<Pick<Row, DefaultedKeys>>;
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       attachments: TableDef<
@@ -500,4 +509,4 @@ export interface Database {
       attachment_category: AttachmentCategoryEnum;
     };
   };
-}
+};

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Coffee, Megaphone, Receipt, Repeat2, ClipboardCheck } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { MOCK_STORES } from "@/lib/mock/dev-data";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const QUICK_ACTIONS = [
   { label: "공지 확인", icon: Megaphone, hrefSuffix: "/notices" },
@@ -18,7 +18,9 @@ export default async function StoreHomePage({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  const store = MOCK_STORES.find((s) => s.id === storeId);
+  // 소속 여부는 layout.tsx에서 이미 검증했으므로 여기서는 표시용으로만 조회합니다.
+  const supabase = await createServerSupabaseClient();
+  const { data: store } = await supabase.from("stores").select("name").eq("id", storeId).maybeSingle();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
