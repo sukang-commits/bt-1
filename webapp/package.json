@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "seed:accounts": "tsx scripts/seed-test-accounts.ts",
+    "seed:demo": "tsx scripts/seed-demo-data.ts",
     "test": "vitest run"
   },
   "dependencies": {

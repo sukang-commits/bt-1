@@ -1,0 +1,90 @@
+# 테스트 시나리오
+
+## 준비
+
+```bash
+npm install
+npm run typecheck && npm run lint && npm run test && npm run build
+npm run seed:accounts   # 역할별 테스트 계정 5개 생성
+npm run seed:demo       # 01호점 중심 데모 데이터 생성
+```
+
+테스트 계정(공통 비밀번호 `Wakidoki!2026`):
+
+| 이메일 | 역할 | 매장 |
+| --- | --- | --- |
+| worker@wakidoki.test | 근무자 (실버) | 01호점 |
+| store-manager@wakidoki.test | 매장 관리자 (골드) | 01호점 |
+| senior-manager@wakidoki.test | 선임점장 (다이아) | 없음 (전 매장) |
+| deputy-manager@wakidoki.test | 대리 (퀸비) | 없음 (전 매장) |
+| administrator@wakidoki.test | 전체 관리자 (챌린저) | 없음 (전 매장) |
+
+## 필수 시나리오
+
+1. **근무자 로그인**
+   worker 계정으로 `/login` → `/stores/{01호점}`으로 자동 이동하는지 확인.
+
+2. **공지 확인**
+   `/stores/{storeId}/notices`에서 미확인 공지가 강조 표시되는지, 상세 페이지에서
+   "확인 완료" 버튼을 누르면 상태가 즉시 바뀌는지 확인. 같은 공지를 다시 열어도
+   중복 기록되지 않는지 확인(재확인 시 버튼 대신 확인 시각이 표시됨).
+
+3. **체크리스트 제출**
+   `/stores/{storeId}/checklist`에서 항목 체크 후 제출 → 진행률과 상태가
+   갱신되는지 확인. 필수 항목을 하나라도 비워두면 제출이 막히는지 확인.
+
+4. **등급별 사진 요구 차이 확인**
+   실버 계정(worker)으로는 모든 항목에 사진 필드가 보이고, 관리자에서 다이아로
+   등급을 바꾼 뒤 다시 로그인하면 핵심 업무를 제외한 사진 필드가 사라지는지 확인.
+
+5. **정산 제출**
+   `/stores/{storeId}/settlements/new`에서 POS/현금 금액을 동일하게 입력 후 제출 →
+   차액 0으로 정상 제출되는지 확인.
+
+6. **정산 차액 발생**
+   POS와 현금 금액을 다르게 입력 → 차액 경고가 뜨고, 특이사항을 비워두면
+   제출이 막히는지 확인(서버에서도 재검증되는지 확인하려면 개발자 도구에서
+   요청을 조작해봐도 무방).
+
+7. **휴게 시작과 종료**
+   `/stores/{storeId}/breaks`에서 시작 → 같은 계정으로 다시 시작 시도하면
+   차단되는지 확인. 종료 후 사용 시간이 자동 계산되는지 확인.
+
+8. **대타 요청과 수락**
+   worker로 대타 요청 등록 → store-manager 계정(같은 매장 소속)으로 로그인해
+   수락 → 요청자(worker)가 "이 사람으로 확정" → 같은 매장이므로 관리자 승인 없이
+   바로 승인완료 상태가 되는지 확인.
+
+9. **관리자 승인**
+   senior-manager(다른 매장 소속 없음 = 교차 매장으로 간주) 계정으로 다른 매장의
+   대타를 수락해 "관리자승인대기" 상태로 전환되는지, administrator 계정으로
+   `/admin/shift-cover`에서 승인 처리하면 승인완료로 바뀌는지 확인.
+
+10. **QSC 입력**
+    administrator로 `/admin/qsc`에서 15개 항목을 입력 → Q/S/C 평균과 QSC 총점이
+    자동 계산되는지 확인.
+
+11. **종합점수 자동 계산**
+    `/admin/monthly-achievement`에서 재계산 버튼을 눌러 이번 달 달성률을 계산한 뒤,
+    `/admin/scores`에서 QSC×0.6 + 월달성률×0.4로 계산된 총합점수와 등급이
+    보이는지 확인.
+
+12. **관리자 권한 차단**
+    worker 계정으로 `/admin` 접속 시 `/access-denied?reason=forbidden`으로
+    리다이렉트되는지 확인.
+
+13. **다른 매장 접근 차단**
+    worker(01호점 소속) 계정으로 `/stores/{02호점 id}` 접속 시 접근이 막히는지
+    확인. administrator 계정으로는 동일 주소가 정상 조회되는지 확인.
+
+14. **명예 등급 인증 간소화 확인**
+    챌린저/로열비로 등급을 올린 계정으로 로그인해 체크리스트 사진 필드가
+    "특이사항을 입력했을 때만" 나타나는지 확인.
+
+## 자동화된 검사
+
+- `npm run test` — 주간 수행도/월간 달성률/QSC 점수 계산 함수 (18개 케이스)
+- `npm run typecheck`, `npm run lint`, `npm run build` — 매 단계마다 실행해 왔으며
+  현재 기준 모두 통과합니다.
+- Supabase 스키마/RLS는 로컬 PostgreSQL에 최소 스텁을 구성해 검증했습니다
+  (자세한 내용은 `supabase/README.md`).
