@@ -18,6 +18,11 @@ const GRADE_TIER: Record<EmployeeGradeEnum, 1 | 2 | 3 | 4> = {
   royal_bee: 4,
 };
 
+// 등급 승급/강등 비교(13단계)에도 재사용하는 등급 순서
+export function gradeTier(grade: EmployeeGradeEnum): 1 | 2 | 3 | 4 {
+  return GRADE_TIER[grade];
+}
+
 export function isHonorGrade(grade: EmployeeGradeEnum): boolean {
   return GRADE_TIER[grade] === 4;
 }
