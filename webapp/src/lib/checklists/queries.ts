@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BrandTypeEnum, ChecklistSubmissionStatusEnum, Database } from "@/types/database";
+import { getAttachmentSignedUrl } from "@/lib/storage/upload";
 
 type Client = SupabaseClient<Database>;
 
@@ -60,6 +61,43 @@ export async function getSubmissionForToday(
     .eq("submission_id", submission.id);
 
   return { submission, itemSubmissions: itemSubmissions ?? [] };
+}
+
+export async function getSubmissionById(supabase: Client, submissionId: string) {
+  const { data: submission } = await supabase
+    .from("checklist_submissions")
+    .select("*")
+    .eq("id", submissionId)
+    .maybeSingle();
+
+  if (!submission) return { submission: null, itemSubmissions: [] };
+
+  const { data: itemSubmissions } = await supabase
+    .from("checklist_item_submissions")
+    .select("*")
+    .eq("submission_id", submission.id);
+
+  return { submission, itemSubmissions: itemSubmissions ?? [] };
+}
+
+// 체크리스트 검토 화면에서 항목별 첨부 사진을 보여주기 위해 attachment id → 서명된 URL로 변환합니다.
+// attachments 버킷은 비공개이므로 storage_path를 알아도 서명된 URL 없이는 접근할 수 없습니다.
+export async function getAttachmentSignedUrls(supabase: Client, attachmentIds: string[]) {
+  const ids = [...new Set(attachmentIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return {} as Record<string, string>;
+
+  const { data: attachments } = await supabase.from("attachments").select("id, storage_path").in("id", ids);
+  const entries = await Promise.all(
+    (attachments ?? []).map(async (a) => {
+      try {
+        return [a.id, await getAttachmentSignedUrl(supabase, a.storage_path)] as const;
+      } catch {
+        return [a.id, null] as const;
+      }
+    })
+  );
+
+  return Object.fromEntries(entries.filter((e): e is [string, string] => Boolean(e[1])));
 }
 
 export interface AdminSubmissionFilters {

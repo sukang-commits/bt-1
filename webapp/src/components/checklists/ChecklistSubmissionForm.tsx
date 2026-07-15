@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PhotoAttachmentField } from "@/components/forms/PhotoAttachmentField";
@@ -29,6 +30,8 @@ export function ChecklistSubmissionForm({
   items,
   existingSubmission,
   existingItemSubmissions,
+  photoUrls = {},
+  readOnly = false,
 }: {
   checklistId: string;
   storeId: string;
@@ -37,6 +40,8 @@ export function ChecklistSubmissionForm({
   items: ChecklistItemRow[];
   existingSubmission: ChecklistSubmissionRow | null;
   existingItemSubmissions: ChecklistItemSubmissionRow[];
+  photoUrls?: Record<string, string>;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -56,8 +61,9 @@ export function ChecklistSubmissionForm({
   const checkedCount = Object.values(rows).filter((r) => r.checked).length;
   const progress = items.length === 0 ? 0 : Math.round((checkedCount / items.length) * 100);
 
-  // 제출 완료(submitted/confirmed) 상태에서는 재제출 불가, needs_supplement일 때만 재제출 허용
-  const locked = existingSubmission?.status === "submitted" || existingSubmission?.status === "confirmed";
+  // 제출 완료(submitted/confirmed) 상태에서는 재제출 불가, needs_supplement일 때만 재제출 허용.
+  // readOnly(타인의 제출을 검토하는 화면)에서는 상태와 무관하게 항상 잠금 처리합니다.
+  const locked = readOnly || existingSubmission?.status === "submitted" || existingSubmission?.status === "confirmed";
 
   const updateRow = (itemId: string, patch: Partial<RowState>) => {
     setRows((prev) => ({ ...prev, [itemId]: { ...prev[itemId], ...patch } }));
@@ -166,6 +172,29 @@ export function ChecklistSubmissionForm({
                       onChange={(id) => updateRow(item.id, { photoId: id })}
                       required={photoNeeded}
                     />
+                  )}
+                </div>
+              )}
+
+              {locked && (row.note || row.photoId) && (
+                <div className="mt-2 flex flex-col gap-2 pl-8">
+                  {row.note && <p className="text-sm text-muted">특이사항: {row.note}</p>}
+                  {row.photoId && (
+                    <div className="relative h-40 w-40 overflow-hidden rounded-xl border border-border">
+                      {photoUrls[row.photoId] ? (
+                        <Image
+                          src={photoUrls[row.photoId]}
+                          alt="첨부 사진"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-muted">
+                          사진을 불러올 수 없습니다
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

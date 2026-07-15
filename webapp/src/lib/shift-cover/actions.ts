@@ -127,13 +127,28 @@ export async function chooseAcceptance(acceptanceId: string, requestId: string, 
   if (!acceptance) throw new Error("수락 신청을 찾을 수 없습니다.");
 
   if (acceptance.is_cross_store) {
-    await supabase
+    const { error } = await supabase
       .from("shift_cover_requests")
       .update({ status: "pending_admin_approval" })
       .eq("id", requestId);
+    if (error) throw error;
   } else {
-    await supabase.from("shift_cover_acceptances").update({ status: "approved" }).eq("id", acceptanceId);
-    await supabase.from("shift_cover_requests").update({ status: "approved" }).eq("id", requestId);
+    // shift_cover_acceptances_one_approved_per_request 부분 unique 인덱스 덕분에, 두 수락 건이
+    // 동시에 선택되더라도 하나만 승인 상태로 남고 나머지는 아래에서 에러로 드러납니다.
+    const { error: acceptanceError } = await supabase
+      .from("shift_cover_acceptances")
+      .update({ status: "approved" })
+      .eq("id", acceptanceId);
+    if (acceptanceError) {
+      if (acceptanceError.code === "23505") throw new Error("이미 다른 수락자가 승인되었습니다.");
+      throw acceptanceError;
+    }
+
+    const { error: requestError } = await supabase
+      .from("shift_cover_requests")
+      .update({ status: "approved" })
+      .eq("id", requestId);
+    if (requestError) throw requestError;
   }
 
   revalidatePath(`/stores/${storeId}/shift-cover/${requestId}`);
@@ -159,10 +174,14 @@ export async function approveAcceptance(acceptanceId: string, requestId: string,
     .eq("id", acceptanceId)
     .maybeSingle();
 
-  await supabase
+  const { error: acceptanceError } = await supabase
     .from("shift_cover_acceptances")
     .update({ status: "approved", admin_approved_by: user.id, admin_approved_at: new Date().toISOString() })
     .eq("id", acceptanceId);
+  if (acceptanceError) {
+    if (acceptanceError.code === "23505") throw new Error("이미 다른 수락자가 승인되었습니다.");
+    throw acceptanceError;
+  }
 
   const { error } = await supabase
     .from("shift_cover_requests")
@@ -226,17 +245,6 @@ export async function cancelShiftCoverRequest(requestId: string, storeId: string
     p_before_data: request,
     p_after_data: { status: "cancelled" },
   });
-
-  revalidatePath(`/stores/${storeId}/shift-cover`);
-}
-
-export async function closeShiftCoverRequest(requestId: string, storeId: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
-    .from("shift_cover_requests")
-    .update({ status: "closed" })
-    .eq("id", requestId);
-  if (error) throw error;
 
   revalidatePath(`/stores/${storeId}/shift-cover`);
 }

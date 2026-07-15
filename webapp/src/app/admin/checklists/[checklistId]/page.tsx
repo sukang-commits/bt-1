@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChecklistItemManager } from "@/components/checklists/ChecklistItemManager";
+import { ChecklistTemplateEditForm } from "@/components/checklists/ChecklistTemplateEditForm";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getChecklistWithItems } from "@/lib/checklists/queries";
 import { CHECKLIST_TYPE_LABEL } from "@/lib/checklists/types";
@@ -23,6 +24,11 @@ export default async function AdminChecklistDetailPage({
       <h1 className="text-xl font-bold text-ink">
         {CHECKLIST_TYPE_LABEL[checklist.type]} · {checklist.name}
       </h1>
+      <ChecklistTemplateEditForm
+        checklistId={checklistId}
+        initialName={checklist.name}
+        initialActive={checklist.active}
+      />
       <ChecklistItemManager checklistId={checklistId} items={items} />
     </div>
   );

@@ -53,7 +53,10 @@ export default async function AdminChecklistSubmissionsPage({
       ) : (
         <div className="flex flex-col gap-3">
           {submissions.map((s) => (
-            <Link key={s.id} href={`/stores/${s.store_id}/checklist/${s.checklist_id}`}>
+            <Link
+              key={s.id}
+              href={`/stores/${s.store_id}/checklist/${s.checklist_id}?submissionId=${s.id}`}
+            >
               <Card>
                 <CardHeader>
                   <CardTitle>{storeNameById.get(s.store_id) ?? "-"}</CardTitle>

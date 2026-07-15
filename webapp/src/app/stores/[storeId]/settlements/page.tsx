@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { listSettlementsForWorker } from "@/lib/settlements/queries";
+import { listSettlementsForAdmin, listSettlementsForWorker } from "@/lib/settlements/queries";
 import { SETTLEMENT_STATUS_LABEL, WORK_SHIFT_LABEL } from "@/lib/settlements/types";
 
 export default async function StoreSettlementsPage({
@@ -17,7 +17,27 @@ export default async function StoreSettlementsPage({
   const { storeId } = await params;
   const user = await getSessionUser();
   const supabase = await createServerSupabaseClient();
-  const settlements = user ? await listSettlementsForWorker(supabase, storeId, user.id) : [];
+
+  // store_manager 이상은 /admin/settlements(관리자 전용 라우트)에 접근할 수 없으므로,
+  // 본인 매장 정산을 검토할 유일한 경로가 이 화면입니다 — 자기 정산만이 아니라
+  // 매장 전체 정산을 보여줘야 합니다.
+  const canReview =
+    user &&
+    (["senior_manager", "deputy_manager", "administrator"].includes(user.role) ||
+      (user.role === "store_manager" && user.storeId === storeId));
+
+  const settlements = !user
+    ? []
+    : canReview
+      ? await listSettlementsForAdmin(supabase, { storeId })
+      : await listSettlementsForWorker(supabase, storeId, user.id);
+
+  let profileNameById = new Map<string, string>();
+  if (canReview && settlements.length > 0) {
+    const profileIds = [...new Set(settlements.map((s) => s.profile_id))];
+    const { data: profiles } = await supabase.from("profiles").select("id, name").in("id", profileIds);
+    profileNameById = new Map((profiles ?? []).map((p) => [p.id, p.name]));
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -39,6 +59,7 @@ export default async function StoreSettlementsPage({
               <Card>
                 <CardHeader>
                   <CardTitle>
+                    {canReview && `${profileNameById.get(s.profile_id) ?? "-"} · `}
                     {s.work_date} · {WORK_SHIFT_LABEL[s.work_shift]}
                   </CardTitle>
                   <StatusBadge label={SETTLEMENT_STATUS_LABEL[s.status]} />
