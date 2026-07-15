@@ -84,10 +84,12 @@ export async function getNoticeDetail(supabase: Client, noticeId: string) {
   return data;
 }
 
-export async function getNoticeAckStats(
+// 공지 범위(store/multi_store/all_stores)를 실제 대상 근무자 profile id 목록으로 변환합니다.
+// getNoticeAckStats(확인 현황 집계)와 notice 생성 시 알림 발송에서 함께 재사용합니다.
+export async function getNoticeTargetProfileIds(
   supabase: Client,
   notice: { id: string; scope: string; store_id: string | null }
-): Promise<NoticeAckStats> {
+): Promise<string[]> {
   let targetStoreIds: string[] = [];
 
   if (notice.scope === "all_stores") {
@@ -103,9 +105,7 @@ export async function getNoticeAckStats(
     targetStoreIds = (links ?? []).map((l) => l.store_id);
   }
 
-  if (targetStoreIds.length === 0) {
-    return { targetCount: 0, ackCount: 0, rate: 0, readers: [], nonReaders: [] };
-  }
+  if (targetStoreIds.length === 0) return [];
 
   const { data: members } = await supabase
     .from("store_members")
@@ -113,6 +113,23 @@ export async function getNoticeAckStats(
     .in("store_id", targetStoreIds);
 
   const targetProfileIds = Array.from(new Set((members ?? []).map((m) => m.profile_id)));
+  if (targetProfileIds.length === 0) return [];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id")
+    .in("id", targetProfileIds)
+    .in("role", ["worker", "store_manager"])
+    .eq("active", true);
+
+  return (profiles ?? []).map((p) => p.id);
+}
+
+export async function getNoticeAckStats(
+  supabase: Client,
+  notice: { id: string; scope: string; store_id: string | null }
+): Promise<NoticeAckStats> {
+  const targetProfileIds = await getNoticeTargetProfileIds(supabase, notice);
   if (targetProfileIds.length === 0) {
     return { targetCount: 0, ackCount: 0, rate: 0, readers: [], nonReaders: [] };
   }

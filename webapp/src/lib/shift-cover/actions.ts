@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { notifyProfile, notifyProfiles } from "@/lib/notifications/notify";
 
 export interface ShiftCoverRequestInput {
   storeId: string;
@@ -37,6 +38,18 @@ export async function createShiftCoverRequest(input: ShiftCoverRequestInput) {
     .single();
 
   if (error) throw error;
+
+  const { data: members } = await supabase.from("store_members").select("profile_id").eq("store_id", input.storeId);
+  const otherMemberIds = (members ?? []).map((m) => m.profile_id).filter((id) => id !== user.id);
+  if (otherMemberIds.length > 0) {
+    await notifyProfiles(supabase, otherMemberIds, {
+      type: "shift_cover.requested",
+      title: "새 대타 요청이 등록되었습니다",
+      body: `${input.workDate} ${input.startTime.slice(0, 5)}~${input.endTime.slice(0, 5)}`,
+      linkPath: `/stores/${input.storeId}/shift-cover/${data.id}`,
+    });
+  }
+
   revalidatePath(`/stores/${input.storeId}/shift-cover`);
   return data.id;
 }
@@ -70,6 +83,20 @@ export async function acceptShiftCoverRequest(requestId: string, storeId: string
     .update({ status: "pending_acceptance" })
     .eq("id", requestId)
     .eq("status", "recruiting");
+
+  const { data: request } = await supabase
+    .from("shift_cover_requests")
+    .select("requested_by")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (request) {
+    await notifyProfile(supabase, {
+      profileId: request.requested_by,
+      type: "shift_cover.accepted",
+      title: "대타 수락 신청이 들어왔습니다",
+      linkPath: `/stores/${storeId}/shift-cover/${requestId}`,
+    });
+  }
 
   revalidatePath(`/stores/${storeId}/shift-cover`);
   revalidatePath(`/stores/${storeId}/shift-cover/${requestId}`);
@@ -126,6 +153,12 @@ export async function approveAcceptance(acceptanceId: string, requestId: string,
     .eq("id", requestId)
     .maybeSingle();
 
+  const { data: acceptance } = await supabase
+    .from("shift_cover_acceptances")
+    .select("accepted_by")
+    .eq("id", acceptanceId)
+    .maybeSingle();
+
   await supabase
     .from("shift_cover_acceptances")
     .update({ status: "approved", admin_approved_by: user.id, admin_approved_at: new Date().toISOString() })
@@ -136,6 +169,20 @@ export async function approveAcceptance(acceptanceId: string, requestId: string,
     .update({ status: "approved" })
     .eq("id", requestId);
   if (error) throw error;
+
+  const recipientIds = [before?.requested_by, acceptance?.accepted_by].filter(
+    (id): id is string => Boolean(id)
+  );
+  await Promise.all(
+    recipientIds.map((profileId) =>
+      notifyProfile(supabase, {
+        profileId,
+        type: "shift_cover.approved",
+        title: "대타 요청이 관리자 승인되었습니다",
+        linkPath: `/stores/${storeId}/shift-cover/${requestId}`,
+      })
+    )
+  );
 
   await supabase.rpc("log_audit_event", {
     p_actor_id: user.id,
@@ -170,6 +217,15 @@ export async function cancelShiftCoverRequest(requestId: string, storeId: string
     .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
     .eq("id", requestId);
   if (error) throw error;
+
+  await supabase.rpc("log_audit_event", {
+    p_actor_id: user.id,
+    p_action: "shift_cover.cancel",
+    p_target_table: "shift_cover_requests",
+    p_target_id: requestId,
+    p_before_data: request,
+    p_after_data: { status: "cancelled" },
+  });
 
   revalidatePath(`/stores/${storeId}/shift-cover`);
 }

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { getNoticeTargetProfileIds } from "@/lib/notices/queries";
+import { notifyProfiles } from "@/lib/notifications/notify";
 import type { NoticeScopeEnum } from "@/types/database";
 
 export interface NoticeFormInput {
@@ -62,6 +64,20 @@ export async function createNotice(input: NoticeFormInput) {
     await supabase
       .from("notice_attachments")
       .insert(input.attachmentIds.map((attachmentId) => ({ notice_id: notice.id, attachment_id: attachmentId })));
+  }
+
+  const targetProfileIds = await getNoticeTargetProfileIds(supabase, {
+    id: notice.id,
+    scope: input.scope,
+    store_id: input.storeId,
+  });
+  const notifyTargets = targetProfileIds.filter((id) => id !== user.id);
+  if (notifyTargets.length > 0) {
+    await notifyProfiles(supabase, notifyTargets, {
+      type: "notice.created",
+      title: `새 공지: ${input.title}`,
+      linkPath: input.storeId ? `/stores/${input.storeId}/notices/${notice.id}` : undefined,
+    });
   }
 
   await supabase.rpc("log_audit_event", {

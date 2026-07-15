@@ -67,12 +67,17 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-bold text-ink">통합현황</h1>
-        <p className="text-sm text-muted">
-          오늘({today}) 기준 16개 매장 현황입니다. 주간 수행도·월 달성률·QSC·종합점수·순위는
-          11~12단계에서 채워집니다.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-ink">통합현황</h1>
+          <p className="text-sm text-muted">
+            오늘({today}) 기준 16개 매장 현황입니다. 주간 수행도·월 달성률·QSC·종합점수·순위는
+            11~12단계에서 채워집니다.
+          </p>
+        </div>
+        <Link href="/admin/audit-logs" className="whitespace-nowrap text-sm font-medium text-brand-dark">
+          기록 보기
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

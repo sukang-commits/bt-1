@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { calculateCategoryAverage } from "@/lib/qsc/scoring";
 import { QSC_ITEMS } from "@/lib/qsc/scoring";
+import { getStoreManagerProfileIds, notifyProfiles } from "@/lib/notifications/notify";
 
 export interface SaveQscScoreInput {
   storeId: string;
@@ -51,6 +52,13 @@ export async function saveQscScore(input: SaveQscScoreInput) {
     { onConflict: "store_id,year_month" }
   );
   if (error) throw error;
+
+  const managerIds = await getStoreManagerProfileIds(supabase, input.storeId);
+  await notifyProfiles(supabase, managerIds, {
+    type: "qsc.scored",
+    title: `${input.yearMonth} QSC 점수가 등록되었습니다`,
+    linkPath: "/admin/qsc",
+  });
 
   await supabase.rpc("log_audit_event", {
     p_actor_id: user.id,

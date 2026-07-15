@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 import type { WorkShiftEnum } from "@/types/database";
 import { EDITABLE_STATUSES } from "@/lib/settlements/types";
+import { getStoreManagerProfileIds, notifyProfiles, notifyProfile } from "@/lib/notifications/notify";
 
 export interface SettlementFormInput {
   storeId: string;
@@ -62,12 +63,32 @@ export async function saveSettlement(existingId: string | null, input: Settlemen
     const { error } = await supabase.from("settlements").update(payload).eq("id", existingId);
     if (error) throw error;
 
+    if (input.submit) {
+      const managerIds = await getStoreManagerProfileIds(supabase, input.storeId);
+      await notifyProfiles(supabase, managerIds, {
+        type: "settlement.submitted",
+        title: "정산 제출 완료",
+        body: `${input.workDate} 정산이 제출되었습니다.`,
+        linkPath: `/stores/${input.storeId}/settlements/${existingId}`,
+      });
+    }
+
     revalidatePath(`/stores/${input.storeId}/settlements`);
     return existingId;
   }
 
   const { data, error } = await supabase.from("settlements").insert(payload).select("id").single();
   if (error) throw error;
+
+  if (input.submit) {
+    const managerIds = await getStoreManagerProfileIds(supabase, input.storeId);
+    await notifyProfiles(supabase, managerIds, {
+      type: "settlement.submitted",
+      title: "정산 제출 완료",
+      body: `${input.workDate} 정산이 제출되었습니다.`,
+      linkPath: `/stores/${input.storeId}/settlements/${data.id}`,
+    });
+  }
 
   revalidatePath(`/stores/${input.storeId}/settlements`);
   return data.id;
@@ -105,6 +126,16 @@ export async function reviewSettlement(
     })
     .eq("id", settlementId);
   if (error) throw error;
+
+  if (action === "request_revision" && before) {
+    await notifyProfile(supabase, {
+      profileId: before.profile_id,
+      type: "settlement.revision_requested",
+      title: "정산 수정 요청",
+      body: revisionReason,
+      linkPath: `/stores/${storeId}/settlements/${settlementId}`,
+    });
+  }
 
   await supabase.rpc("log_audit_event", {
     p_actor_id: user.id,

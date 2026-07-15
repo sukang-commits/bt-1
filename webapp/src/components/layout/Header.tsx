@@ -47,16 +47,20 @@ export function Header({ user, homeHref, notificationCount = 0 }: HeaderProps) {
           </div>
         )}
 
-        <button
-          type="button"
-          aria-label="알림"
-          className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-subtle"
-        >
-          <Bell className="h-5 w-5" />
-          {notificationCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-danger" />
-          )}
-        </button>
+        {user && (
+          <Link
+            href="/notifications"
+            aria-label="알림"
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink hover:bg-subtle"
+          >
+            <Bell className="h-5 w-5" />
+            {notificationCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-medium text-white">
+                {notificationCount > 9 ? "9+" : notificationCount}
+              </span>
+            )}
+          </Link>
+        )}
 
         {user && (
           <button

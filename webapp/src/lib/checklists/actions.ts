@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { todayKst } from "@/lib/date";
 import { checklistItemPhotoRequirement, isPhotoRequiredNow } from "@/lib/grades/policy";
+import { notifyProfile } from "@/lib/notifications/notify";
 import type { BrandTypeEnum, ChecklistTypeEnum, EmployeeGradeEnum, WorkShiftEnum } from "@/types/database";
 
 async function assertAdmin() {
@@ -41,10 +42,21 @@ export async function createChecklistTemplate(input: ChecklistTemplateInput) {
 }
 
 export async function updateChecklistTemplate(id: string, input: { name: string; active: boolean }) {
-  await assertAdmin();
+  const user = await assertAdmin();
   const supabase = await createServerSupabaseClient();
+  const { data: before } = await supabase.from("checklists").select("*").eq("id", id).maybeSingle();
   const { error } = await supabase.from("checklists").update(input).eq("id", id);
   if (error) throw error;
+
+  await supabase.rpc("log_audit_event", {
+    p_actor_id: user.id,
+    p_action: "checklist.update",
+    p_target_table: "checklists",
+    p_target_id: id,
+    p_before_data: before,
+    p_after_data: input,
+  });
+
   revalidatePath(`/admin/checklists/${id}`);
 }
 
@@ -190,6 +202,12 @@ export async function reviewChecklistSubmission(
   if (!isAdmin && !isStoreManager) throw new Error("체크리스트를 검토할 권한이 없습니다.");
 
   const supabase = await createServerSupabaseClient();
+  const { data: before } = await supabase
+    .from("checklist_submissions")
+    .select("*")
+    .eq("id", submissionId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("checklist_submissions")
     .update({
@@ -200,6 +218,25 @@ export async function reviewChecklistSubmission(
     })
     .eq("id", submissionId);
   if (error) throw error;
+
+  if (action === "needs_supplement" && before) {
+    await notifyProfile(supabase, {
+      profileId: before.profile_id,
+      type: "checklist.needs_supplement",
+      title: "체크리스트 보완 요청",
+      body: note ?? undefined,
+      linkPath: `/stores/${storeId}/checklist/${before.checklist_id}`,
+    });
+  }
+
+  await supabase.rpc("log_audit_event", {
+    p_actor_id: user.id,
+    p_action: `checklist_submission.${action}`,
+    p_target_table: "checklist_submissions",
+    p_target_id: submissionId,
+    p_before_data: before,
+    p_after_data: { status: action === "confirm" ? "confirmed" : "needs_supplement" },
+  });
 
   revalidatePath(`/stores/${storeId}/checklist`);
   revalidatePath("/admin/checklists/submissions");

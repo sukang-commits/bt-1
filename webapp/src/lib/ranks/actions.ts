@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { gradeTier, isHonorGrade } from "@/lib/grades/policy";
+import { notifyProfile } from "@/lib/notifications/notify";
+import { GRADE_LABELS } from "@/types/domain";
 import type { EmployeeGradeEnum, RankChangeTypeEnum } from "@/types/database";
 
 export interface ChangeGradeInput {
@@ -57,6 +59,13 @@ export async function changeGrade(input: ChangeGradeInput) {
     effective_date: input.effectiveDate,
   });
   if (historyError) throw historyError;
+
+  await notifyProfile(supabase, {
+    profileId: input.profileId,
+    type: "rank.changed",
+    title: "등급이 변경되었습니다",
+    body: `${GRADE_LABELS[input.newGrade]}(으)로 변경되었습니다.`,
+  });
 
   await supabase.rpc("log_audit_event", {
     p_actor_id: user.id,

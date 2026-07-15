@@ -311,6 +311,17 @@ export type AuditLogRow = {
   created_at: string;
 };
 
+export type NotificationRow = {
+  id: string;
+  profile_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link_path: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
 // 현재는 embedded resource(foreign table) select를 쓰지 않으므로 Relationships는
 // 빈 배열로 둡니다. 조인 조회가 필요해지면 실제 FK에 맞는 GenericRelationship을 채워주세요.
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
@@ -476,6 +487,10 @@ export type Database = {
           "id" | "before_data" | "after_data" | "ip_address" | "user_agent" | "created_at"
         >
       >;
+      notifications: TableDef<
+        NotificationRow,
+        WithDefaults<NotificationRow, "id" | "body" | "link_path" | "read_at" | "created_at">
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -489,6 +504,16 @@ export type Database = {
           p_after_data?: Record<string, unknown> | null;
           p_ip_address?: string | null;
           p_user_agent?: string | null;
+        };
+        Returns: string;
+      };
+      create_notification: {
+        Args: {
+          p_profile_id: string;
+          p_type: string;
+          p_title: string;
+          p_body?: string | null;
+          p_link_path?: string | null;
         };
         Returns: string;
       };
