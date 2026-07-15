@@ -15,3 +15,16 @@ export function formatDateTimeKst(iso: string): string {
     minute: "2-digit",
   }).format(new Date(iso));
 }
+
+// dateStr(YYYY-MM-DD) 기준 주의 월요일 날짜를 반환합니다.
+export function mondayOfWeek(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const day = d.getUTCDay(); // 0=일 ... 6=토
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diffToMonday);
+  return d.toISOString().slice(0, 10);
+}
+
+export function currentYearMonthKst(): string {
+  return todayKst().slice(0, 7);
+}
