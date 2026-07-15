@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, AttachmentCategoryEnum } from "@/types/database";
 import { todayKst } from "@/lib/date";
+import { assertUploadable, compressImageToWebp } from "@/lib/storage/compress";
 
 interface UploadAttachmentInput {
   supabase: SupabaseClient<Database>;
@@ -8,27 +9,51 @@ interface UploadAttachmentInput {
   category: AttachmentCategoryEnum;
   storeId: string;
   uploadedBy: string;
+  onProgress?: (stage: "compressing" | "uploading" | "done") => void;
+  maxRetries?: number;
 }
 
-// 15단계(파일 업로드 및 사진 최적화)에서 브라우저 압축/WebP 변환이 이 함수 앞단에 추가될 예정입니다.
-// 지금은 storage.objects RLS가 기대하는 stores/{storeId}/{category}/{yyyy}/{mm}/{uuid}.{ext}
-// 경로 규칙만 지키는 단순 업로드입니다.
+// stores/{storeId}/{category}/{yyyy}/{mm}/{uuid}.{ext} 경로 규칙(storage RLS가 이 형태를 전제로
+// 매장 소속을 검사합니다)을 지키면서, 압축 → 업로드 → DB 기록까지 한 번에 처리합니다.
+// 파일명은 매번 새 uuid를 쓰므로 중복 걱정이 없고, 업로드 실패 시 지수 백오프로 재시도합니다.
 export async function uploadAttachment({
   supabase,
   file,
   category,
   storeId,
   uploadedBy,
+  onProgress,
+  maxRetries = 2,
 }: UploadAttachmentInput) {
+  assertUploadable(file);
+
+  onProgress?.("compressing");
+  const compressed = await compressImageToWebp(file);
+
   const [year, month] = todayKst().split("-");
-  const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+  const ext = compressed.name.split(".").pop()?.toLowerCase() || "bin";
   const path = `stores/${storeId}/${category}/${year}/${month}/${crypto.randomUUID()}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (uploadError) throw uploadError;
+  onProgress?.("uploading");
+
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const { error: uploadError } = await supabase.storage.from("attachments").upload(path, compressed, {
+      contentType: compressed.type,
+      upsert: false,
+    });
+
+    if (!uploadError) {
+      lastError = null;
+      break;
+    }
+
+    lastError = uploadError;
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 2 ** attempt * 500));
+    }
+  }
+  if (lastError) throw lastError;
 
   const { data: attachment, error: insertError } = await supabase
     .from("attachments")
@@ -37,8 +62,8 @@ export async function uploadAttachment({
       store_id: storeId,
       uploaded_by: uploadedBy,
       storage_path: path,
-      mime_type: file.type,
-      size_bytes: file.size,
+      mime_type: compressed.type,
+      size_bytes: compressed.size,
       width: null,
       height: null,
     })
@@ -47,6 +72,7 @@ export async function uploadAttachment({
 
   if (insertError) throw insertError;
 
+  onProgress?.("done");
   return attachment.id;
 }
 
