@@ -14,16 +14,17 @@ supabase db push
 
 ### 2) SQL Editor에 직접 붙여넣기
 
-`migrations/0001_...` 부터 `migrations/0012_...` 까지 파일명 순서대로 Supabase 대시보드의
-SQL Editor에서 실행합니다.
+`migrations/0001_...` 부터 파일명 순서대로 Supabase 대시보드의 SQL Editor에서 실행합니다
+(`0013_storage_bucket.sql`은 사진/파일 첨부용 Storage 버킷과 정책을 만듭니다).
 
 적용 후 `seed.sql`을 실행하면 16개 매장 기본 데이터가 생성됩니다.
 
 ## 로컬 검증
 
-이 스키마는 로컬 PostgreSQL에 `auth.users` 테이블과 `auth.uid()` 함수를 최소 스텁으로 재현한
-환경에서 전체 마이그레이션 적용 + RLS 정책(교차 매장 차단, 중복 휴게 시작 차단, 본인 요청
-자기 수락 차단, 정산 차액 특이사항 필수 등)을 실제로 실행해 확인했습니다.
+이 스키마는 로컬 PostgreSQL에 `auth.users`/`storage.objects` 등을 최소 스텁으로 재현한 환경에서
+전체 마이그레이션 적용 + RLS 정책(교차 매장 차단, 중복 휴게 시작 차단, 본인 요청 자기 수락 차단,
+정산 차액 특이사항 필수, Storage 경로 기반 매장 접근 제어, 공지 범위별 노출·확인 현황 집계 등)을
+실제로 실행해 확인했습니다.
 
 ## 구조 요약
 
