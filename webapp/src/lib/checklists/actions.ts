@@ -135,27 +135,12 @@ export async function submitChecklist(
   const workDate = todayKst();
   const progressRate = items.length === 0 ? 0 : Math.round((items.filter((i) => i.checked).length / items.length) * 1000) / 10;
 
-  const { data: existing } = await supabase
+  // checklist_submissions_unique_per_day 제약(checklist_id, profile_id, work_date) 덕분에
+  // upsert가 원자적으로 처리되어, 이중 클릭/동시 요청으로 인한 중복 제출 행이 생기지 않습니다.
+  const { data: submission, error: submissionError } = await supabase
     .from("checklist_submissions")
-    .select("id")
-    .eq("checklist_id", checklistId)
-    .eq("profile_id", user.id)
-    .eq("work_date", workDate)
-    .maybeSingle();
-
-  let submissionId = existing?.id;
-
-  if (submissionId) {
-    const { error } = await supabase
-      .from("checklist_submissions")
-      .update({ status: "submitted", progress_rate: progressRate, submitted_at: new Date().toISOString() })
-      .eq("id", submissionId);
-    if (error) throw error;
-    await supabase.from("checklist_item_submissions").delete().eq("submission_id", submissionId);
-  } else {
-    const { data, error } = await supabase
-      .from("checklist_submissions")
-      .insert({
+    .upsert(
+      {
         checklist_id: checklistId,
         store_id: storeId,
         profile_id: user.id,
@@ -165,16 +150,20 @@ export async function submitChecklist(
         reviewed_by: null,
         reviewed_at: null,
         review_note: null,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    submissionId = data.id;
-  }
+        submitted_at: new Date().toISOString(),
+      },
+      { onConflict: "checklist_id,profile_id,work_date" }
+    )
+    .select("id")
+    .single();
+  if (submissionError) throw submissionError;
+  const submissionId = submission.id;
+
+  await supabase.from("checklist_item_submissions").delete().eq("submission_id", submissionId);
 
   const { error: itemsError } = await supabase.from("checklist_item_submissions").insert(
     items.map((i) => ({
-      submission_id: submissionId!,
+      submission_id: submissionId,
       checklist_item_id: i.itemId,
       is_checked: i.checked,
       photo_attachment_id: i.photoAttachmentId,

@@ -30,7 +30,7 @@ export async function recomputeWeeklyPerformance(storeId: string, weekStartDate:
     const date = addDays(weekStartDate, dayOfWeek);
     const { total, completed } = await getRequiredTaskCounts(supabase, storeId, date);
 
-    await supabase
+    const { error } = await supabase
       .from("weekly_performance")
       .upsert(
         {
@@ -43,6 +43,7 @@ export async function recomputeWeeklyPerformance(storeId: string, weekStartDate:
         },
         { onConflict: "store_id,week_start_date,day_of_week" }
       );
+    if (error) throw error;
   }
 
   revalidatePath(`/admin/weekly-performance`);
