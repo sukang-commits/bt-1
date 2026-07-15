@@ -3,6 +3,8 @@ import { Coffee, Megaphone, Receipt, Repeat2, ClipboardCheck } from "lucide-reac
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
+import { todayKst } from "@/lib/date";
 
 const QUICK_ACTIONS = [
   { label: "공지 확인", icon: Megaphone, hrefSuffix: "/notices" },
@@ -12,15 +14,80 @@ const QUICK_ACTIONS = [
   { label: "대타 요청", icon: Repeat2, hrefSuffix: "/shift-cover" },
 ];
 
+const SETTLEMENT_STATUS_LABEL: Record<string, string> = {
+  draft: "작성중",
+  submitted: "제출완료",
+  confirmed: "관리자확인",
+  revision_requested: "수정요청",
+  completed: "처리완료",
+};
+
 export default async function StoreHomePage({
   params,
 }: {
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  // 소속 여부는 layout.tsx에서 이미 검증했으므로 여기서는 표시용으로만 조회합니다.
   const supabase = await createServerSupabaseClient();
-  const { data: store } = await supabase.from("stores").select("name").eq("id", storeId).maybeSingle();
+  const user = await getSessionUser();
+  const today = todayKst();
+
+  // 소속 여부는 layout.tsx에서 이미 검증했으므로 여기서는 표시/조회용으로만 사용합니다.
+  const [{ data: store }, { data: notices }, { data: submission }, { data: settlement }, { data: todaysBreaks }, { count: openShiftCoverCount }] =
+    await Promise.all([
+      supabase.from("stores").select("name").eq("id", storeId).maybeSingle(),
+      supabase
+        .from("notices")
+        .select("id")
+        .eq("store_id", storeId)
+        .is("deleted_at", null),
+      user
+        ? supabase
+            .from("checklist_submissions")
+            .select("progress_rate")
+            .eq("store_id", storeId)
+            .eq("profile_id", user.id)
+            .eq("work_date", today)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("settlements")
+            .select("status")
+            .eq("store_id", storeId)
+            .eq("profile_id", user.id)
+            .eq("work_date", today)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("breaks")
+            .select("ended_at")
+            .eq("store_id", storeId)
+            .eq("profile_id", user.id)
+            .eq("work_date", today)
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("shift_cover_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId)
+        .eq("status", "recruiting"),
+    ]);
+
+  let unreadNoticeCount = 0;
+  const noticeIds = (notices ?? []).map((n) => n.id);
+  if (user && noticeIds.length > 0) {
+    const { data: reads } = await supabase
+      .from("notice_reads")
+      .select("notice_id")
+      .eq("profile_id", user.id)
+      .in("notice_id", noticeIds);
+    const readIds = new Set((reads ?? []).map((r) => r.notice_id));
+    unreadNoticeCount = noticeIds.filter((id) => !readIds.has(id)).length;
+  }
+
+  const breakInProgress = (todaysBreaks ?? []).some((b) => b.ended_at === null);
+  const breakUsedToday = (todaysBreaks ?? []).length > 0;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -47,60 +114,85 @@ export default async function StoreHomePage({
       <Card>
         <CardHeader>
           <CardTitle>오늘의 공지</CardTitle>
-          <StatusBadge label="미확인" />
+          <StatusBadge label={unreadNoticeCount > 0 ? "미확인" : "확인완료"} />
         </CardHeader>
-        <CardDescription>미확인 공지 2건이 있습니다. (5단계에서 실제 데이터 연동)</CardDescription>
+        <CardDescription>
+          {noticeIds.length === 0
+            ? "등록된 공지가 없습니다."
+            : `전체 ${noticeIds.length}건 중 미확인 ${unreadNoticeCount}건이 있습니다.`}
+        </CardDescription>
       </Card>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>오늘의 체크리스트</CardTitle>
-            <span className="text-sm font-semibold text-brand-dark">60%</span>
+            <span className="text-sm font-semibold text-brand-dark">
+              {submission ? `${submission.progress_rate}%` : "-"}
+            </span>
           </CardHeader>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-subtle">
-            <div className="h-full w-3/5 rounded-full bg-brand-dark" />
-          </div>
+          {submission ? (
+            <div className="h-2 w-full overflow-hidden rounded-full bg-subtle">
+              <div
+                className="h-full rounded-full bg-brand-dark"
+                style={{ width: `${submission.progress_rate}%` }}
+              />
+            </div>
+          ) : (
+            <CardDescription>오늘 제출한 체크리스트가 없습니다.</CardDescription>
+          )}
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>정산 제출 상태</CardTitle>
-            <StatusBadge label="제출완료" />
+            <StatusBadge
+              label={settlement ? SETTLEMENT_STATUS_LABEL[settlement.status] : "미제출"}
+            />
           </CardHeader>
-          <CardDescription>오늘 마감 근무 정산이 제출되었습니다.</CardDescription>
+          <CardDescription>
+            {settlement ? "오늘 근무 정산이 등록되어 있습니다." : "오늘 등록된 정산 내역이 없습니다."}
+          </CardDescription>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>휴게 사용 상태</CardTitle>
-            <StatusBadge label="미사용" />
+            <StatusBadge label={breakInProgress ? "휴게중" : breakUsedToday ? "휴게완료" : "미사용"} />
           </CardHeader>
-          <CardDescription>아직 휴게를 사용하지 않았습니다.</CardDescription>
+          <CardDescription>
+            {breakInProgress
+              ? "현재 휴게 중입니다."
+              : breakUsedToday
+                ? "오늘 휴게를 사용했습니다."
+                : "아직 휴게를 사용하지 않았습니다."}
+          </CardDescription>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>모집 중인 대타 요청</CardTitle>
-            <span className="text-sm font-semibold text-ink">1건</span>
+            <span className="text-sm font-semibold text-ink">{openShiftCoverCount ?? 0}건</span>
           </CardHeader>
-          <CardDescription>이번 주말 마감 대타를 구하고 있어요.</CardDescription>
+          <CardDescription>
+            {(openShiftCoverCount ?? 0) > 0
+              ? "대타 게시판에서 확인해 주세요."
+              : "현재 모집 중인 대타 요청이 없습니다."}
+          </CardDescription>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>이번 주 수행도</CardTitle>
-            <span className="text-sm font-semibold text-ink">92%</span>
           </CardHeader>
-          <CardDescription>우수 등급을 유지하고 있습니다.</CardDescription>
+          <CardDescription>11단계에서 실제 수행도 계산이 연결됩니다.</CardDescription>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>이번 달 달성률</CardTitle>
-            <span className="text-sm font-semibold text-ink">88%</span>
           </CardHeader>
-          <CardDescription>전월 대비 +3%p 상승했습니다.</CardDescription>
+          <CardDescription>11단계에서 실제 달성률 계산이 연결됩니다.</CardDescription>
         </Card>
       </div>
     </div>
