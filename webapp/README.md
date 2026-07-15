@@ -1,9 +1,11 @@
 # 워키도키 (Wakidoki)
 
 16개 매장의 근무·업무 인증(공지/체크리스트/정산/휴게/대타/QSC/등급)을 관리하는 통합 웹 시스템입니다.
-Next.js 16(App Router) + Supabase 기반이며, 모바일에서 앱처럼 쓸 수 있는 PWA로 만들어지고 있습니다.
+Next.js 16(App Router) + Supabase 기반이며, 모바일 브라우저에서 쓰기 편하도록 반응형으로
+만들었습니다. (홈 화면 추가가 가능한 PWA manifest/서비스워커는 아직 없습니다 — 필요하면 추가
+구현이 필요합니다.)
 
-> 진행 상황: 1~16단계 완료, 17단계(최종 점검) 진행 중.
+> 진행 상황: 1~17단계 전체 완료.
 
 ## 문서
 
@@ -63,7 +65,7 @@ src/
   types/          도메인 타입, Supabase Database 타입
   proxy.ts        라우트 보호 (Next.js 16의 middleware.ts 대체)
 supabase/
-  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0014)
+  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0017)
   seed.sql        16개 매장 초기 데이터
 scripts/
   seed-test-accounts.ts   테스트 계정 5개 생성

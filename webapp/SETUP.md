@@ -16,7 +16,7 @@ npm install
 ## 2) Supabase 프로젝트 생성 및 스키마 적용
 
 1. [supabase.com](https://supabase.com)에서 새 프로젝트를 생성합니다.
-2. `supabase/migrations/0001_...` 부터 `0014_...` 까지 파일명 순서대로 SQL Editor에
+2. `supabase/migrations/0001_...` 부터 `0017_...` 까지 파일명 순서대로 SQL Editor에
    붙여넣어 실행합니다 (또는 Supabase CLI의 `supabase db push` 사용).
 3. `supabase/seed.sql`을 실행해 16개 매장 기본 데이터를 넣습니다.
 

@@ -50,6 +50,8 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
 - `senior_manager` / `deputy_manager` / `administrator`: 전 매장 데이터 조회/관리
   (`is_admin()` 헬퍼 함수가 RLS 정책마다 이 역할들을 bypass 조건으로 사용)
 - 세부 정책은 `supabase/migrations/0012_rls_policies.sql`, 알림은 `0014_notifications.sql` 참고
+- 체크리스트 제출 중복 방지(`0015`), 주간 수행도 upsert 제약(`0016`), 대타 승인 트리거 보정 및
+  요청당 승인 1건 제약(`0017`)은 17단계 최종 점검에서 추가되었습니다
 
 ## 로컬 검증
 
