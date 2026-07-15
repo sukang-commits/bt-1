@@ -1,35 +1,77 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import Link from "next/link";
+import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { MOCK_STORES } from "@/lib/mock/dev-data";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNoticeAckStats } from "@/lib/notices/queries";
+import { todayKst } from "@/lib/date";
+import { storeHealthStatus } from "@/lib/performance/thresholds";
 
-const SUMMARY_CARDS = [
-  { label: "전체 매장 수", value: `${MOCK_STORES.length}개` },
-  { label: "오늘 미확인 공지 수", value: "7건" },
-  { label: "정산 미제출 건수", value: "3건" },
-  { label: "정산 차액 발생 건수", value: "1건" },
-  { label: "휴게 미인증 건수", value: "2건" },
-  { label: "현재 휴게 중 인원", value: "5명" },
-  { label: "대타 승인 대기 건수", value: "4건" },
-  { label: "체크리스트 미완료 건수", value: "6건" },
-];
+export default async function AdminOverviewPage() {
+  const supabase = await createServerSupabaseClient();
+  const today = todayKst();
 
-const STORE_ROWS = MOCK_STORES.slice(0, 6).map((store, i) => ({
-  ...store,
-  today: 80 + i,
-  weekly: 85 + i,
-  monthly: 82 + i,
-  qsc: 90 + i,
-  total: 88 + i,
-  status: i % 4 === 0 ? "우수" : i % 4 === 1 ? "정상" : i % 4 === 2 ? "개선필요" : "집중관리",
-}));
+  const [
+    { data: stores },
+    { data: todaysNotices },
+    { data: todaysSettlements },
+    { count: needsReviewBreaks },
+    { count: activeBreaks },
+    { count: pendingShiftCovers },
+    { data: todaysSubmissions },
+  ] = await Promise.all([
+    supabase.from("stores").select("id, code, name").order("code"),
+    supabase.from("notices").select("*").is("deleted_at", null).gte("publish_at", `${today}T00:00:00`),
+    supabase.from("settlements").select("store_id, status, variance").eq("work_date", today),
+    supabase.from("breaks").select("id", { count: "exact", head: true }).eq("status", "needs_review"),
+    supabase.from("breaks").select("id", { count: "exact", head: true }).is("ended_at", null),
+    supabase
+      .from("shift_cover_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending_admin_approval"),
+    supabase.from("checklist_submissions").select("store_id, status, progress_rate").eq("work_date", today),
+  ]);
 
-export default function AdminOverviewPage() {
+  const ackStatsList = await Promise.all(
+    (todaysNotices ?? []).map((n) => getNoticeAckStats(supabase, n))
+  );
+  const unreadNoticeCount = ackStatsList.reduce((sum, s) => sum + (s.targetCount - s.ackCount), 0);
+
+  const draftSettlements = (todaysSettlements ?? []).filter((s) => s.status === "draft").length;
+  const varianceSettlements = (todaysSettlements ?? []).filter((s) => s.variance !== 0).length;
+  const needsSupplementChecklists = (todaysSubmissions ?? []).filter((s) => s.status === "needs_supplement").length;
+
+  const SUMMARY_CARDS = [
+    { label: "전체 매장 수", value: `${(stores ?? []).length}개` },
+    { label: "오늘 미확인 공지 수", value: `${unreadNoticeCount}건` },
+    { label: "정산 미제출(작성중) 건수", value: `${draftSettlements}건` },
+    { label: "정산 차액 발생 건수", value: `${varianceSettlements}건` },
+    { label: "휴게 미인증(확인필요) 건수", value: `${needsReviewBreaks ?? 0}건` },
+    { label: "현재 휴게 중 인원", value: `${activeBreaks ?? 0}명` },
+    { label: "대타 승인 대기 건수", value: `${pendingShiftCovers ?? 0}건` },
+    { label: "체크리스트 보완 요청 건수", value: `${needsSupplementChecklists}건` },
+  ];
+
+  const storeRows = (stores ?? []).map((store) => {
+    const submissions = (todaysSubmissions ?? []).filter((s) => s.store_id === store.id);
+    const todayRate =
+      submissions.length === 0
+        ? null
+        : Math.round(submissions.reduce((sum, s) => sum + s.progress_rate, 0) / submissions.length);
+
+    return {
+      ...store,
+      todayRate,
+      status: todayRate === null ? null : storeHealthStatus(todayRate),
+    };
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-xl font-bold text-ink">통합현황</h1>
         <p className="text-sm text-muted">
-          16개 매장 현황 요약입니다. (10단계에서 실제 데이터·필터로 대체됩니다)
+          오늘({today}) 기준 16개 매장 현황입니다. 주간 수행도·월 달성률·QSC·종합점수·순위는
+          11~12단계에서 채워집니다.
         </p>
       </div>
 
@@ -43,10 +85,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>16개 매장 통합 현황</CardTitle>
-        </CardHeader>
-        <CardDescription className="mb-3">일부 매장만 예시로 표시했습니다.</CardDescription>
+        <h2 className="mb-3 font-semibold text-ink">16개 매장 통합 현황</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
@@ -61,16 +100,20 @@ export default function AdminOverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {STORE_ROWS.map((row) => (
+              {storeRows.map((row) => (
                 <tr key={row.id} className="border-b border-border last:border-0">
-                  <td className="py-2 pr-3 font-medium text-ink">{row.name}</td>
-                  <td className="py-2 pr-3 text-ink">{row.today}%</td>
-                  <td className="py-2 pr-3 text-ink">{row.weekly}%</td>
-                  <td className="py-2 pr-3 text-ink">{row.monthly}%</td>
-                  <td className="py-2 pr-3 text-ink">{row.qsc}</td>
-                  <td className="py-2 pr-3 text-ink">{row.total}</td>
+                  <td className="py-2 pr-3 font-medium text-ink">
+                    <Link href={`/stores/${row.id}`} className="hover:underline">
+                      {row.name}
+                    </Link>
+                  </td>
+                  <td className="py-2 pr-3 text-ink">{row.todayRate === null ? "-" : `${row.todayRate}%`}</td>
+                  <td className="py-2 pr-3 text-muted">-</td>
+                  <td className="py-2 pr-3 text-muted">-</td>
+                  <td className="py-2 pr-3 text-muted">-</td>
+                  <td className="py-2 pr-3 text-muted">-</td>
                   <td className="py-2 pr-3">
-                    <StatusBadge label={row.status} />
+                    {row.status ? <StatusBadge label={row.status} /> : <span className="text-muted">-</span>}
                   </td>
                 </tr>
               ))}
