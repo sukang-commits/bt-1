@@ -8,10 +8,17 @@ import { checklistItemPhotoRequirement, isPhotoRequiredNow } from "@/lib/grades/
 import { notifyProfile } from "@/lib/notifications/notify";
 import type { BrandTypeEnum, ChecklistTypeEnum, EmployeeGradeEnum, WorkShiftEnum } from "@/types/database";
 
-async function assertAdmin() {
+// 상위 관리자(선임/대리/전체)는 모든 매장의 체크리스트를 관리할 수 있고,
+// store_manager는 본인 매장 전용 템플릿(store_id가 자기 매장인 것)만 관리할 수 있습니다.
+// 브랜드 공통 템플릿(store_id가 null)은 여러 매장에 동시에 영향을 주므로 상위 관리자 전용입니다.
+async function assertCanManageChecklist(storeId: string | null) {
   const user = await getSessionUser();
-  if (!user || !["senior_manager", "deputy_manager", "administrator"].includes(user.role)) {
-    throw new Error("체크리스트 관리는 관리자만 할 수 있습니다.");
+  const isAdmin = Boolean(user && ["senior_manager", "deputy_manager", "administrator"].includes(user.role));
+  const isOwnStoreManager = Boolean(
+    user && user.role === "store_manager" && storeId !== null && user.storeId === storeId
+  );
+  if (!user || (!isAdmin && !isOwnStoreManager)) {
+    throw new Error("이 체크리스트를 관리할 권한이 없습니다.");
   }
   return user;
 }
@@ -24,7 +31,7 @@ export interface ChecklistTemplateInput {
 }
 
 export async function createChecklistTemplate(input: ChecklistTemplateInput) {
-  await assertAdmin();
+  await assertCanManageChecklist(input.storeId);
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("checklists")
@@ -38,13 +45,16 @@ export async function createChecklistTemplate(input: ChecklistTemplateInput) {
     .single();
   if (error) throw error;
   revalidatePath("/admin/checklists");
+  if (input.storeId) revalidatePath(`/stores/${input.storeId}/checklist/manage`);
   return data.id;
 }
 
 export async function updateChecklistTemplate(id: string, input: { name: string; active: boolean }) {
-  const user = await assertAdmin();
   const supabase = await createServerSupabaseClient();
   const { data: before } = await supabase.from("checklists").select("*").eq("id", id).maybeSingle();
+  if (!before) throw new Error("체크리스트를 찾을 수 없습니다.");
+  const user = await assertCanManageChecklist(before.store_id);
+
   const { error } = await supabase.from("checklists").update(input).eq("id", id);
   if (error) throw error;
 
@@ -58,6 +68,7 @@ export async function updateChecklistTemplate(id: string, input: { name: string;
   });
 
   revalidatePath(`/admin/checklists/${id}`);
+  if (before.store_id) revalidatePath(`/stores/${before.store_id}/checklist/manage/${id}`);
 }
 
 export interface ChecklistItemInput {
@@ -70,9 +81,17 @@ export interface ChecklistItemInput {
   sortOrder: number;
 }
 
+async function getChecklistStoreId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, checklistId: string) {
+  const { data } = await supabase.from("checklists").select("store_id").eq("id", checklistId).maybeSingle();
+  if (!data) throw new Error("체크리스트를 찾을 수 없습니다.");
+  return data.store_id;
+}
+
 export async function addChecklistItem(checklistId: string, input: ChecklistItemInput) {
-  await assertAdmin();
   const supabase = await createServerSupabaseClient();
+  const storeId = await getChecklistStoreId(supabase, checklistId);
+  await assertCanManageChecklist(storeId);
+
   const { error } = await supabase.from("checklist_items").insert({
     checklist_id: checklistId,
     label: input.label,
@@ -85,17 +104,21 @@ export async function addChecklistItem(checklistId: string, input: ChecklistItem
   });
   if (error) throw error;
   revalidatePath(`/admin/checklists/${checklistId}`);
+  if (storeId) revalidatePath(`/stores/${storeId}/checklist/manage/${checklistId}`);
 }
 
 export async function deleteChecklistItem(itemId: string, checklistId: string) {
-  await assertAdmin();
   const supabase = await createServerSupabaseClient();
+  const storeId = await getChecklistStoreId(supabase, checklistId);
+  await assertCanManageChecklist(storeId);
+
   const { error } = await supabase
     .from("checklist_items")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", itemId);
   if (error) throw error;
   revalidatePath(`/admin/checklists/${checklistId}`);
+  if (storeId) revalidatePath(`/stores/${storeId}/checklist/manage/${checklistId}`);
 }
 
 export interface ChecklistItemState {

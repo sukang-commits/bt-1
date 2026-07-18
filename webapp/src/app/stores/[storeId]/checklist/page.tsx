@@ -37,9 +37,10 @@ export default async function StoreChecklistPage({
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink">업무 체크</h1>
         {canReview && (
-          <Link href={`/stores/${storeId}/checklist/submissions`} className="text-sm font-medium text-brand-dark">
-            매장 제출 현황 →
-          </Link>
+          <div className="flex flex-col items-end gap-1 text-sm font-medium text-brand-dark">
+            <Link href={`/stores/${storeId}/checklist/manage`}>매장 업무 관리 →</Link>
+            <Link href={`/stores/${storeId}/checklist/submissions`}>매장 제출 현황 →</Link>
+          </div>
         )}
       </div>
 

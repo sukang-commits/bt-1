@@ -70,11 +70,12 @@ update stores set name = '실제 매장명' where code = '01';
 ## 7) 배포 전 최종 체크리스트
 
 - [ ] `npm run lint / typecheck / test / build` 모두 통과
-- [ ] Supabase 마이그레이션 0001~0019 전체 적용 확인
+- [ ] Supabase 마이그레이션 0001~0020 전체 적용 확인
 - [ ] Storage 버킷(`attachments`) 생성 및 정책 확인
 - [ ] 환경변수 3개 등록 확인 (`SUPABASE_SERVICE_ROLE_KEY`는 서버 전용으로만)
 - [ ] 최초 관리자 계정 생성 및 로그인 확인
 - [ ] 16개 매장명을 실제 상호명으로 교체
-- [ ] 매장별 체크리스트 템플릿 등록 (`/admin/checklists`)
+- [ ] 매장별 체크리스트 템플릿 등록 (관리자는 `/admin/checklists`, 매장 관리자는
+      `/stores/{storeId}/checklist/manage`에서 본인 매장 것만 직접 등록 가능)
 - [ ] 근무자 계정 발급 및 소속 매장/등급 배정
 - [ ] 테스트/데모 데이터가 운영 DB에 남아있지 않은지 확인

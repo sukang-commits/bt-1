@@ -58,6 +58,10 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
   신규 계정은 `{username}@wakidoki.local` 형태의 내부 전용 이메일로 생성됩니다
 - `qsc_scores` 테이블과 `monthly_achievements.total_score` 컬럼은 QSC 기능 폐기로
   삭제되었습니다(`0019`). "종합점수" 화면(`/admin/scores`, `/admin/qsc`)도 함께 제거됨
+- `checklists`/`checklist_items`의 insert/update RLS를 완화해(`0020`) store_manager가
+  본인 매장 전용(`store_id`가 자기 매장) 템플릿/업무를 직접 관리할 수 있게 했습니다.
+  브랜드 공통 템플릿(`store_id is null`)은 여러 매장에 동시 적용되므로 계속
+  상위 관리자 전용입니다
 
 ## 로컬 검증
 

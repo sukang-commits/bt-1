@@ -16,6 +16,19 @@ export async function listChecklistsForStore(supabase: Client, storeId: string, 
   return data ?? [];
 }
 
+// 매장 관리자가 "매장 업무 관리" 화면에서 보는 목록. 매장 전용 템플릿(수정 가능)과
+// 브랜드 공통 템플릿(참고용, 상위 관리자만 수정 가능)을 함께 보여주되 비활성 템플릿도 포함합니다.
+export async function listChecklistsForStoreManagement(supabase: Client, storeId: string, brandType: BrandTypeEnum) {
+  const { data } = await supabase
+    .from("checklists")
+    .select("*")
+    .is("deleted_at", null)
+    .or(`store_id.eq.${storeId},store_id.is.null`)
+    .eq("brand_type", brandType)
+    .order("type");
+  return data ?? [];
+}
+
 export async function listChecklistTemplatesForAdmin(supabase: Client) {
   const { data } = await supabase
     .from("checklists")
