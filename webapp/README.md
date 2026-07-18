@@ -1,6 +1,6 @@
 # 워키도키 (Wakidoki)
 
-16개 매장의 근무·업무 인증(공지/체크리스트/정산/휴게/대타/QSC/등급)을 관리하는 통합 웹 시스템입니다.
+16개 매장의 근무·업무 인증(공지/체크리스트/정산/휴게/대타/등급)을 관리하는 통합 웹 시스템입니다.
 Next.js 16(App Router) + Supabase 기반이며, 모바일 브라우저에서 쓰기 편하도록 반응형으로
 만들었습니다. (홈 화면 추가가 가능한 PWA manifest/서비스워커는 아직 없습니다 — 필요하면 추가
 구현이 필요합니다.)
@@ -44,7 +44,7 @@ Supabase 프로젝트 준비와 마이그레이션 적용은 [SETUP.md](./SETUP.
 | `npm run build` | 프로덕션 빌드 |
 | `npm run lint` | ESLint 검사 |
 | `npm run typecheck` | TypeScript 타입 검사 |
-| `npm run test` | vitest 단위 테스트 (수행도/QSC 계산 로직) |
+| `npm run test` | vitest 단위 테스트 (수행도 계산 로직) |
 | `npm run seed:accounts` | 5개 역할 테스트 계정 생성 |
 | `npm run seed:demo` | 01호점 중심 데모 데이터 생성 |
 
@@ -58,14 +58,14 @@ src/
     auth/         세션 조회(getSessionUser) 등 인증 헬퍼
     supabase/     브라우저/서버/관리자 Supabase 클라이언트
     notices, settlements, breaks, shift-cover, checklists,
-    performance, qsc, ranks, notifications, accounts   기능별 queries/actions
+    performance, ranks, notifications, accounts, stores   기능별 queries/actions
     grades/       등급별 인증 정책 (사진 요구사항)
     storage/      첨부파일 업로드 + 압축
     constants/    메뉴, 상태 배지 등 공통 상수
   types/          도메인 타입, Supabase Database 타입
   proxy.ts        라우트 보호 (Next.js 16의 middleware.ts 대체)
 supabase/
-  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0018)
+  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0019)
   seed.sql        16개 매장 초기 데이터
 scripts/
   seed-test-accounts.ts   테스트 계정 5개 생성

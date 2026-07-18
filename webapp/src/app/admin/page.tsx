@@ -71,8 +71,7 @@ export default async function AdminOverviewPage() {
         <div>
           <h1 className="text-xl font-bold text-ink">통합현황</h1>
           <p className="text-sm text-muted">
-            오늘({today}) 기준 16개 매장 현황입니다. 주간 수행도·월 달성률·QSC·종합점수·순위는
-            11~12단계에서 채워집니다.
+            오늘({today}) 기준 16개 매장 현황입니다. 주간 수행도·월 달성률은 각 메뉴에서 확인하세요.
           </p>
         </div>
         <Link href="/admin/audit-logs" className="whitespace-nowrap text-sm font-medium text-brand-dark">
@@ -99,8 +98,6 @@ export default async function AdminOverviewPage() {
                 <th className="py-2 pr-3 font-medium">오늘 수행도</th>
                 <th className="py-2 pr-3 font-medium">주간 수행도</th>
                 <th className="py-2 pr-3 font-medium">월 달성률</th>
-                <th className="py-2 pr-3 font-medium">QSC 점수</th>
-                <th className="py-2 pr-3 font-medium">총합점수</th>
                 <th className="py-2 pr-3 font-medium">상태</th>
               </tr>
             </thead>
@@ -113,8 +110,6 @@ export default async function AdminOverviewPage() {
                     </Link>
                   </td>
                   <td className="py-2 pr-3 text-ink">{row.todayRate === null ? "-" : `${row.todayRate}%`}</td>
-                  <td className="py-2 pr-3 text-muted">-</td>
-                  <td className="py-2 pr-3 text-muted">-</td>
                   <td className="py-2 pr-3 text-muted">-</td>
                   <td className="py-2 pr-3 text-muted">-</td>
                   <td className="py-2 pr-3">

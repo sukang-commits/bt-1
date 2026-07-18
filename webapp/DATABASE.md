@@ -2,9 +2,10 @@
 
 전체 SQL은 `supabase/migrations/`에 순서대로 있습니다. 이 문서는 설계 의도를 정리합니다.
 
-## 테이블 목록 (21개)
+## 테이블 목록 (20개)
 
-2단계에서 정의한 20개 + 14단계에서 추가한 `notifications` 1개.
+2단계에서 정의한 20개 + 14단계에서 추가한 `notifications` 1개 − QSC 폐기(0019)로 제거한
+`qsc_scores` 1개.
 
 | 영역 | 테이블 |
 | --- | --- |
@@ -13,7 +14,7 @@
 | 체크리스트 | `checklists`, `checklist_items`, `checklist_submissions`, `checklist_item_submissions` |
 | 정산/휴게 | `settlements`, `breaks` |
 | 대타 | `shift_cover_requests`, `shift_cover_acceptances` |
-| 성과 | `qsc_scores`, `monthly_achievements`, `weekly_performance` |
+| 성과 | `monthly_achievements`, `weekly_performance` |
 | 등급 | `employee_ranks`, `rank_histories` |
 | 기록/알림 | `audit_logs`, `notifications` |
 
@@ -33,7 +34,7 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
   `checklists.store_id`가 null이면 해당 `brand_type`의 모든 매장에 공통 적용됩니다.
 - **정산의 브랜드별 추가 항목은 `extra_fields jsonb`에 저장합니다.** PC/벌툰마다
   다른 스키마를 따로 만들지 않고, 하나의 정산 폼과 테이블을 공유합니다.
-- **차액(`variance`), QSC 총점(`qsc_total`), 휴게 시간(`duration_minutes`), 수행도
+- **차액(`variance`), 휴게 시간(`duration_minutes`), 수행도
   비율(`performance_rate`)은 모두 DB의 `GENERATED ALWAYS AS` 계산 컬럼입니다.**
   애플리케이션 코드가 잘못 계산해서 저장된 값과 실제 값이 어긋날 수 없습니다.
 - **중복/경합 방지는 가능한 한 DB 제약으로 처리합니다.**
@@ -55,6 +56,8 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
 - `profiles.username`(`0018`): 근무자가 이메일이 아니라 아이디로 로그인할 수 있도록 추가.
   로그인은 `lib/auth/login-actions.ts`에서 아이디 → 실제 auth 이메일로 변환 후 처리하며,
   신규 계정은 `{username}@wakidoki.local` 형태의 내부 전용 이메일로 생성됩니다
+- `qsc_scores` 테이블과 `monthly_achievements.total_score` 컬럼은 QSC 기능 폐기로
+  삭제되었습니다(`0019`). "종합점수" 화면(`/admin/scores`, `/admin/qsc`)도 함께 제거됨
 
 ## 로컬 검증
 

@@ -158,7 +158,6 @@ export async function recomputeMonthlyAchievement(storeId: string, yearMonth: st
       task_completion_score: taskCompletionScore,
       achievement_rate: achievementRate,
       previous_month_diff: previousMonthDiff,
-      total_score: null,
     },
     { onConflict: "store_id,year_month" }
   );

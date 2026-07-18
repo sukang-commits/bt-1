@@ -70,7 +70,7 @@ update stores set name = '실제 매장명' where code = '01';
 ## 7) 배포 전 최종 체크리스트
 
 - [ ] `npm run lint / typecheck / test / build` 모두 통과
-- [ ] Supabase 마이그레이션 0001~0018 전체 적용 확인
+- [ ] Supabase 마이그레이션 0001~0019 전체 적용 확인
 - [ ] Storage 버킷(`attachments`) 생성 및 정책 확인
 - [ ] 환경변수 3개 등록 확인 (`SUPABASE_SERVICE_ROLE_KEY`는 서버 전용으로만)
 - [ ] 최초 관리자 계정 생성 및 로그인 확인

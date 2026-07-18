@@ -11,10 +11,8 @@ import {
   Receipt,
   Repeat2,
   ShieldCheck,
-  Star,
   Store,
   TrendingUp,
-  Trophy,
   Users,
 } from "lucide-react";
 
@@ -36,8 +34,6 @@ export type IconKey =
   | "repeat"
   | "checklist-list"
   | "bar-chart"
-  | "star"
-  | "trophy"
   | "shield-check";
 
 export const MENU_ICONS: Record<IconKey, LucideIcon> = {
@@ -54,8 +50,6 @@ export const MENU_ICONS: Record<IconKey, LucideIcon> = {
   repeat: Repeat2,
   "checklist-list": ClipboardList,
   "bar-chart": BarChart3,
-  star: Star,
-  trophy: Trophy,
   "shield-check": ShieldCheck,
 };
 
@@ -142,14 +136,6 @@ export const ADMIN_MENU: MenuItem[] = [
     label: "월 달성률",
     href: "/admin/monthly-achievement",
     icon: "trending-up",
-  },
-  { key: "qsc", label: "QSC 관리", href: "/admin/qsc", icon: "star" },
-  {
-    key: "scores",
-    label: "종합점수",
-    href: "/admin/scores",
-    icon: "trophy",
-    primary: true,
   },
   {
     key: "accounts",

@@ -44,15 +44,18 @@
 | 체크리스트 검토 | ✗ | 본인 매장 | ✓ |
 | 대타 요청/수락 | ✓ | ✓ | ✗ (직접 참여 대상 아님) |
 | 대타 최종 승인(교차 매장) | ✗ | ✗ | ✓ |
-| QSC 점수 입력 | ✗ | ✗ | ✓ |
 | 등급 변경 | ✗ | ✗ | ✓ |
 | 계정 역할/활성 변경 | ✗ | ✗ | `administrator`만 |
 
 ## 계정 발급
 
-회원가입 화면은 없습니다. 계정은 관리자가 발급합니다.
+회원가입 화면은 없습니다. 계정은 관리자가 발급하며, 로그인은 이메일이 아니라
+**아이디(username)**로 합니다.
 
-- 개발/테스트: `npm run seed:accounts`
-- 운영: Supabase Auth Admin API(`supabase.auth.admin.createUser`)를 사용하는
-  서버 스크립트 또는 Supabase 대시보드에서 직접 생성 후, `profiles`/`store_members`/
-  `employee_ranks` 행을 함께 넣어야 합니다 (`scripts/seed-test-accounts.ts` 참고).
+- 운영: `administrator`가 `/admin/accounts`의 "신규 계정 발급" 화면에서 이름/아이디/
+  비밀번호/역할/매장을 입력하면 바로 생성됩니다 (내부적으로 `{username}@wakidoki.local`
+  형태의 전용 이메일로 Supabase Auth 계정이 만들어짐). 비밀번호 재설정도 같은 화면에서
+  관리자가 직접 할 수 있습니다.
+- 개발/테스트: `npm run seed:accounts` (5개 역할 테스트 계정)
+- 최초 관리자 계정 1개만 위 화면이 없는 상태에서 만들어야 하므로 `DEPLOYMENT.md`의
+  수동 생성 절차를 따릅니다.

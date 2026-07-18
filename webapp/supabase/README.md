@@ -1,7 +1,8 @@
 # Supabase 스키마
 
-`migrations/` 폴더의 SQL을 순서대로 적용하면 워키도키 서비스에 필요한 21개 테이블
-(2단계에서 설계한 20개 + 14단계에서 추가한 `notifications`)과 RLS 정책이 모두 구성됩니다.
+`migrations/` 폴더의 SQL을 순서대로 적용하면 워키도키 서비스에 필요한 20개 테이블
+(2단계에서 설계한 20개 + 14단계에서 추가한 `notifications` − QSC 폐기로 제거한
+`qsc_scores`)과 RLS 정책이 모두 구성됩니다.
 
 ## 적용 방법
 
@@ -33,7 +34,7 @@ supabase db push
 - **체크리스트**: `checklists`, `checklist_items`, `checklist_submissions`, `checklist_item_submissions`
 - **정산/휴게**: `settlements`, `breaks`
 - **대타**: `shift_cover_requests`, `shift_cover_acceptances`
-- **성과**: `qsc_scores`, `monthly_achievements`, `weekly_performance`
+- **성과**: `monthly_achievements`, `weekly_performance`
 - **등급**: `employee_ranks`, `rank_histories`
 - **감사 기록**: `audit_logs` (일반 insert 정책 없음 — `log_audit_event()` SECURITY DEFINER 함수로만 기록)
 
@@ -42,6 +43,6 @@ supabase db push
 - `worker`: 본인 데이터 + 소속 매장의 공개 데이터 조회, 본인 데이터 작성
 - `store_manager`: 소속 매장(store_members)의 운영 데이터(공지 발행, 정산/휴게/대타 검토 등) 관리
 - `senior_manager` / `deputy_manager` / `administrator`: 전 매장 데이터 조회/관리 (`/admin` 접근 가능)
-- 계정 발급(`profiles` insert), 체크리스트 템플릿, QSC 점수, 등급 변경은 관리자 전용
+- 계정 발급(`profiles` insert), 체크리스트 템플릿, 등급 변경은 관리자 전용
 
 세부 정책은 `migrations/0012_rls_policies.sql`을 참고하세요.

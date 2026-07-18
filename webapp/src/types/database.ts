@@ -240,19 +240,6 @@ export type ShiftCoverAcceptanceRow = Timestamps & {
   admin_approved_at: string | null;
 };
 
-export type QscScoreRow = Timestamps & {
-  id: string;
-  store_id: string;
-  year_month: string;
-  quality_score: number;
-  service_score: number;
-  cleanliness_score: number;
-  qsc_total: number;
-  item_scores: Record<string, number>;
-  admin_comment: string | null;
-  created_by: string;
-};
-
 export type MonthlyAchievementRow = Timestamps & {
   id: string;
   store_id: string;
@@ -264,7 +251,6 @@ export type MonthlyAchievementRow = Timestamps & {
   task_completion_score: number;
   achievement_rate: number;
   previous_month_diff: number | null;
-  total_score: number | null;
 };
 
 export type WeeklyPerformanceRow = Timestamps & {
@@ -448,13 +434,6 @@ export type Database = {
         WithDefaults<
           ShiftCoverAcceptanceRow,
           "id" | "is_cross_store" | "status" | "created_at" | "updated_at"
-        >
-      >;
-      qsc_scores: TableDef<
-        QscScoreRow,
-        WithDefaults<
-          QscScoreRow,
-          "id" | "qsc_total" | "item_scores" | "created_at" | "updated_at"
         >
       >;
       monthly_achievements: TableDef<

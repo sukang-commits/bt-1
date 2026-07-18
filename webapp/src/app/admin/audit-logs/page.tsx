@@ -21,7 +21,7 @@ export default async function AdminAuditLogsPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-xl font-bold text-ink">기록 관리 (Audit Log)</h1>
-        <p className="text-sm text-muted">공지/정산/대타/등급/QSC/체크리스트/계정 등 주요 변경 기록입니다.</p>
+        <p className="text-sm text-muted">공지/정산/대타/등급/체크리스트/계정 등 주요 변경 기록입니다.</p>
       </div>
 
       {(logs ?? []).length === 0 ? (

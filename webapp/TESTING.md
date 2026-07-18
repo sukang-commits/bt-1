@@ -61,14 +61,15 @@ npm run seed:demo       # 01호점 중심 데모 데이터 생성
    대타를 수락해 "관리자승인대기" 상태로 전환되는지, administrator 계정으로
    `/admin/shift-cover`에서 승인 처리하면 승인완료로 바뀌는지 확인.
 
-10. **QSC 입력**
-    administrator로 `/admin/qsc`에서 15개 항목을 입력 → Q/S/C 평균과 QSC 총점이
-    자동 계산되는지 확인.
+10. **아이디 기반 로그인**
+    `/login`에서 이메일이 아니라 아이디(예: `worker`)로 로그인되는지 확인. 존재하지
+    않는 아이디/틀린 비밀번호 모두 동일한 에러 메시지가 뜨는지(아이디 존재 여부가
+    드러나지 않는지) 확인.
 
-11. **종합점수 자동 계산**
-    `/admin/monthly-achievement`에서 재계산 버튼을 눌러 이번 달 달성률을 계산한 뒤,
-    `/admin/scores`에서 QSC×0.6 + 월달성률×0.4로 계산된 총합점수와 등급이
-    보이는지 확인.
+11. **신규 계정 발급 / 비밀번호 재설정**
+    administrator로 `/admin/accounts`에서 "신규 계정 발급"으로 근무자 계정을 만든 뒤
+    그 아이디로 로그인되는지 확인. 같은 화면에서 "비밀번호 재설정"으로 비밀번호를
+    바꾼 뒤 새 비밀번호로 로그인되는지 확인.
 
 12. **관리자 권한 차단**
     worker 계정으로 `/admin` 접속 시 `/access-denied?reason=forbidden`으로
@@ -84,7 +85,7 @@ npm run seed:demo       # 01호점 중심 데모 데이터 생성
 
 ## 자동화된 검사
 
-- `npm run test` — 주간 수행도/월간 달성률/QSC 점수 계산 함수 (18개 케이스)
+- `npm run test` — 주간 수행도/월간 달성률 계산 함수 (12개 케이스)
 - `npm run typecheck`, `npm run lint`, `npm run build` — 매 단계마다 실행해 왔으며
   현재 기준 모두 통과합니다.
 - Supabase 스키마/RLS는 로컬 PostgreSQL에 최소 스텁을 구성해 검증했습니다

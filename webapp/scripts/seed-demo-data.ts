@@ -1,5 +1,5 @@
 /**
- * 01호점(PC)을 중심으로 공지/체크리스트/정산/휴게/대타/QSC/주간수행도/월간달성률까지
+ * 01호점(PC)을 중심으로 공지/체크리스트/정산/휴게/대타/주간수행도/월간달성률까지
  * 전 기능을 한 번씩 눈으로 확인할 수 있는 데모 데이터를 채웁니다.
  *
  * 사전 준비: supabase/migrations 전체 + supabase/seed.sql(16개 매장) +
@@ -215,47 +215,7 @@ async function main() {
     cancelled_at: null,
   });
 
-  console.log("7) QSC 점수 생성 (이번 달/전월)...");
-  const buildItemScores = (base: number) => ({
-    "quality:음식 품질": base,
-    "quality:음료 품질": base,
-    "quality:레시피 준수": base,
-    "quality:상품 제공 상태": base,
-    "quality:유통기한 관리": base,
-    "service:고객 응대": base,
-    "service:근무자 친절도": base,
-    "service:주문 처리 속도": base,
-    "service:불만 처리": base,
-    "service:근무 태도": base,
-    "cleanliness:매장 청결": base,
-    "cleanliness:주방 청결": base,
-    "cleanliness:화장실 청결": base,
-    "cleanliness:좌석 및 룸 청결": base,
-    "cleanliness:집기 및 기기 관리": base,
-  });
-
-  await admin.from("qsc_scores").insert({
-    store_id: storeId,
-    year_month: `${thisYearMonth}-01`,
-    quality_score: 90,
-    service_score: 88,
-    cleanliness_score: 92,
-    item_scores: buildItemScores(90),
-    admin_comment: "전반적으로 우수한 상태입니다.",
-    created_by: storeManagerId,
-  });
-  await admin.from("qsc_scores").insert({
-    store_id: storeId,
-    year_month: `${prevYearMonth}-01`,
-    quality_score: 85,
-    service_score: 84,
-    cleanliness_score: 86,
-    item_scores: buildItemScores(85),
-    admin_comment: "청결 항목 보완이 필요했습니다.",
-    created_by: storeManagerId,
-  });
-
-  console.log("8) 주간 수행도 / 월간 달성률 생성...");
+  console.log("7) 주간 수행도 / 월간 달성률 생성...");
   const monday = new Date(today);
   const day = monday.getDay();
   monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
@@ -284,7 +244,6 @@ async function main() {
     task_completion_score: 80,
     achievement_rate: 87.1,
     previous_month_diff: 3.6,
-    total_score: null,
   });
   await admin.from("monthly_achievements").insert({
     store_id: storeId,
@@ -296,7 +255,6 @@ async function main() {
     task_completion_score: 78,
     achievement_rate: 83.5,
     previous_month_diff: null,
-    total_score: null,
   });
 
   console.log("\n데모 데이터 생성 완료! worker@wakidoki.test 계정으로 로그인해 01호점 화면을 확인해 보세요.");

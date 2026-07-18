@@ -11,8 +11,7 @@ export type NotificationType =
   | "shift_cover.accepted"
   | "shift_cover.approved"
   | "checklist.needs_supplement"
-  | "rank.changed"
-  | "qsc.scored";
+  | "rank.changed";
 
 interface NotifyInput {
   profileId: string;
@@ -22,7 +21,7 @@ interface NotifyInput {
   linkPath?: string;
 }
 
-// 다른 기능(공지/정산/대타/체크리스트/등급/QSC)의 서버 액션에서 호출하는 공용 알림 발송 함수.
+// 다른 기능(공지/정산/대타/체크리스트/등급)의 서버 액션에서 호출하는 공용 알림 발송 함수.
 // notifications 테이블에는 일반 insert 정책이 없으므로 반드시 create_notification()
 // SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
 export async function notifyProfile(supabase: Client, input: NotifyInput) {
