@@ -21,7 +21,8 @@ export default async function AdminAccountsPage() {
       <div>
         <h1 className="text-xl font-bold text-ink">계정 및 권한관리</h1>
         <p className="text-sm text-muted">
-          아이디/비밀번호를 발급하고, 역할 변경·비밀번호 재설정·활성화 여부를 관리합니다.
+          아이디/비밀번호를 발급합니다. 계정을 눌러서 이름·역할·매장·활성화 여부 수정,
+          비밀번호 재설정, 삭제까지 할 수 있습니다.
         </p>
       </div>
 

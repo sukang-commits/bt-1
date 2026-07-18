@@ -154,3 +154,76 @@ export async function resetAccountPassword(profileId: string, newPassword: strin
     p_after_data: null,
   });
 }
+
+export interface UpdateAccountDetailsInput {
+  name: string;
+  brandType: BrandTypeEnum;
+  storeId: string | null;
+}
+
+export async function updateAccountDetails(profileId: string, input: UpdateAccountDetailsInput) {
+  const user = await assertAdmin();
+  if (!input.name.trim()) throw new Error("이름을 입력해 주세요.");
+
+  const supabase = await createServerSupabaseClient();
+  const { data: before } = await supabase.from("profiles").select("*").eq("id", profileId).maybeSingle();
+  if (!before) throw new Error("계정을 찾을 수 없습니다.");
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ name: input.name.trim(), brand_type: input.brandType })
+    .eq("id", profileId);
+  if (profileError) throw profileError;
+
+  // 소속 매장은 항상 하나만 유지합니다 (기존 배정을 지우고 새로 지정한 매장으로 교체).
+  const { error: deleteMemberError } = await supabase.from("store_members").delete().eq("profile_id", profileId);
+  if (deleteMemberError) throw deleteMemberError;
+
+  if (input.storeId) {
+    const { error: memberError } = await supabase
+      .from("store_members")
+      .insert({ store_id: input.storeId, profile_id: profileId, is_primary: true });
+    if (memberError) throw memberError;
+  }
+
+  await supabase.rpc("log_audit_event", {
+    p_actor_id: user.id,
+    p_action: "account.update_details",
+    p_target_table: "profiles",
+    p_target_id: profileId,
+    p_before_data: before,
+    p_after_data: { name: input.name.trim(), brand_type: input.brandType, store_id: input.storeId },
+  });
+
+  revalidatePath("/admin/accounts");
+  revalidatePath(`/admin/accounts/${profileId}`);
+}
+
+// 완전 삭제는 정산/체크리스트/공지 등 그 계정이 남긴 기록을 참조 무결성 때문에 지울 수 없을 때
+// 실패합니다(의도된 동작 — 활동 이력이 있는 퇴사자는 "비활성화"를 사용해야 함). 활동 이력이
+// 전혀 없는 실수로 만든 계정 등을 완전히 지우고 싶을 때만 사용하세요.
+export async function deleteAccount(profileId: string) {
+  const user = await assertAdmin();
+  if (profileId === user.id) {
+    throw new Error("본인 계정은 삭제할 수 없습니다.");
+  }
+
+  const admin = createAdminSupabaseClient();
+  const { error } = await admin.auth.admin.deleteUser(profileId);
+  if (error) {
+    throw new Error(
+      "삭제할 수 없습니다. 정산/체크리스트/공지 등 이 계정이 남긴 기록이 있으면 삭제 대신 비활성화를 사용해 주세요."
+    );
+  }
+
+  await admin.rpc("log_audit_event", {
+    p_actor_id: user.id,
+    p_action: "account.delete",
+    p_target_table: "profiles",
+    p_target_id: profileId,
+    p_before_data: null,
+    p_after_data: null,
+  });
+
+  revalidatePath("/admin/accounts");
+}
