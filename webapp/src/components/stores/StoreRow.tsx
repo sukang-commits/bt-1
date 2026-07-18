@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/providers/ToastProvider";
 import { updateStoreName } from "@/lib/stores/actions";
@@ -58,6 +60,11 @@ export function StoreRow({
         <Button size="md" loading={loading} disabled={value.trim() === name} onClick={handleSave}>
           저장
         </Button>
+        <Link href={`/stores/${storeId}`} target="_blank">
+          <Button size="md" variant="outline">
+            <ExternalLink className="h-4 w-4" /> 매장 화면 보기
+          </Button>
+        </Link>
       </div>
     </div>
   );
