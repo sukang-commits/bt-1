@@ -100,6 +100,7 @@ async function main() {
 
     const { error: profileError } = await admin.from("profiles").upsert({
       id: userId,
+      username: account.email.split("@")[0].toLowerCase(),
       name: account.name,
       phone: null,
       role: account.role,

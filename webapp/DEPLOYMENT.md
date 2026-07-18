@@ -39,15 +39,24 @@ Vercel을 사용하는 경우 저장소를 연결하고 위 환경변수만 등�
 
 ## 5) 최초 관리자 계정 생성
 
+로그인은 이메일이 아니라 **아이디(username)**로 합니다 (`profiles.username`).
+`0018_username_login.sql` 적용 시 기존 이메일 계정은 `@` 앞부분이 자동으로
+아이디가 됩니다. 최초 관리자 계정은 아직 이 방식이 없으므로 수동으로 만듭니다.
+
 1. Supabase 대시보드 **Authentication → Users**에서 이메일/비밀번호로 사용자를
-   생성합니다 (또는 `auth.admin.createUser` API 사용).
-2. 생성된 사용자 `id`로 `profiles` 테이블에 행을 추가합니다.
+   생성합니다 (또는 `auth.admin.createUser` API 사용). 이메일은 실제 이메일이든
+   아무 형식이든 상관없습니다 (로그인에는 아이디만 쓰입니다).
+2. 생성된 사용자 `id`로 `profiles` 테이블에 행을 추가합니다. `username`이 바로
+   로그인 아이디입니다.
    ```sql
-   insert into profiles (id, name, phone, role, brand_type, active)
-   values ('<auth user id>', '관리자 이름', null, 'administrator', 'pc', true);
+   insert into profiles (id, username, name, phone, role, brand_type, active)
+   values ('<auth user id>', '<로그인용 아이디>', '관리자 이름', null, 'administrator', 'pc', true);
    ```
 3. 필요하면 `employee_ranks`에도 등급을 추가합니다 (없어도 로그인/이용에는
    문제없이 기본 등급으로 표시됩니다).
+4. 이후 근무자 계정은 이 관리자 계정으로 로그인해서 `/admin/accounts` 화면의
+   **"신규 계정 발급"**에서 이름/아이디/비밀번호/역할/매장을 입력해 바로 만들 수
+   있습니다 (스크립트나 Supabase API를 직접 쓸 필요 없음).
 
 ## 6) 16개 매장 실제 상호명으로 변경
 
@@ -61,7 +70,7 @@ update stores set name = '실제 매장명' where code = '01';
 ## 7) 배포 전 최종 체크리스트
 
 - [ ] `npm run lint / typecheck / test / build` 모두 통과
-- [ ] Supabase 마이그레이션 0001~0017 전체 적용 확인
+- [ ] Supabase 마이그레이션 0001~0018 전체 적용 확인
 - [ ] Storage 버킷(`attachments`) 생성 및 정책 확인
 - [ ] 환경변수 3개 등록 확인 (`SUPABASE_SERVICE_ROLE_KEY`는 서버 전용으로만)
 - [ ] 최초 관리자 계정 생성 및 로그인 확인

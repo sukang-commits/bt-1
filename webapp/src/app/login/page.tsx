@@ -1,19 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Lock, Mail } from "lucide-react";
+import { Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/providers/ToastProvider";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { ADMIN_ROLES, type UserRole } from "@/types/domain";
+import { loginWithUsername } from "@/lib/auth/login-actions";
 
 const loginSchema = z.object({
-  email: z.string().min(1, "이메일을 입력해 주세요.").email("이메일 형식이 올바르지 않습니다."),
+  username: z.string().min(1, "아이디를 입력해 주세요."),
   password: z.string().min(1, "비밀번호를 입력해 주세요."),
 });
 
@@ -32,54 +30,17 @@ export default function LoginPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true);
-    const supabase = createBrowserSupabaseClient();
+    const result = await loginWithUsername(values.username, values.password);
+    setSubmitting(false);
 
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
-
-    if (signInError || !signInData.user) {
-      setSubmitting(false);
-      showToast("로그인에 실패했습니다", {
-        description: "이메일 또는 비밀번호를 확인해 주세요.",
-        variant: "error",
-      });
+    if (!result.success) {
+      showToast("로그인에 실패했습니다", { description: result.error, variant: "error" });
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("name, role, active")
-      .eq("id", signInData.user.id)
-      .maybeSingle();
-
-    if (!profile || !profile.active) {
-      await supabase.auth.signOut();
-      setSubmitting(false);
-      showToast("승인되지 않은 계정입니다", {
-        description: "관리자에게 계정 활성화를 요청해 주세요.",
-        variant: "error",
-      });
-      return;
-    }
-
-    const isAdmin = (ADMIN_ROLES as UserRole[]).includes(profile.role as UserRole);
-    showToast(`${profile.name}님 환영합니다`, { variant: "success" });
-
-    if (isAdmin) {
-      router.replace("/admin");
-      return;
-    }
-
-    const { data: membership } = await supabase
-      .from("store_members")
-      .select("store_id")
-      .eq("profile_id", signInData.user.id)
-      .eq("is_primary", true)
-      .maybeSingle();
-
-    router.replace(membership?.store_id ? `/stores/${membership.store_id}` : "/access-denied?reason=no-store");
+    showToast(`${result.name}님 환영합니다`, { variant: "success" });
+    router.replace(result.redirectTo);
+    router.refresh();
   });
 
   return (
@@ -98,32 +59,27 @@ export default function LoginPage() {
           className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm"
         >
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink" htmlFor="email">
-              이메일
+            <label className="mb-1.5 block text-sm font-medium text-ink" htmlFor="username">
+              아이디
             </label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
+              <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
               <input
-                id="email"
-                type="email"
+                id="username"
+                type="text"
                 autoComplete="username"
-                placeholder="이메일을 입력하세요"
+                placeholder="아이디를 입력하세요"
                 className="h-14 w-full rounded-xl border border-border bg-page pl-11 pr-3 text-base text-ink outline-none focus:border-brand-dark focus:ring-2 focus:ring-brand/40"
-                {...register("email")}
+                {...register("username")}
               />
             </div>
-            {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
+            {errors.username && <p className="mt-1 text-xs text-danger">{errors.username.message}</p>}
           </div>
 
           <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label className="block text-sm font-medium text-ink" htmlFor="password">
-                비밀번호
-              </label>
-              <Link href="/reset-password" className="text-xs font-medium text-brand-dark">
-                비밀번호를 잊으셨나요?
-              </Link>
-            </div>
+            <label className="mb-1.5 block text-sm font-medium text-ink" htmlFor="password">
+              비밀번호
+            </label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
               <input
@@ -146,6 +102,7 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-muted">
             로그인 상태는 로그아웃하기 전까지 유지됩니다. 계정은 관리자가 발급합니다.
+            비밀번호를 잊으신 경우 관리자에게 재설정을 요청해 주세요.
           </p>
         </form>
       </div>

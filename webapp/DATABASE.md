@@ -52,6 +52,9 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
 - 세부 정책은 `supabase/migrations/0012_rls_policies.sql`, 알림은 `0014_notifications.sql` 참고
 - 체크리스트 제출 중복 방지(`0015`), 주간 수행도 upsert 제약(`0016`), 대타 승인 트리거 보정 및
   요청당 승인 1건 제약(`0017`)은 17단계 최종 점검에서 추가되었습니다
+- `profiles.username`(`0018`): 근무자가 이메일이 아니라 아이디로 로그인할 수 있도록 추가.
+  로그인은 `lib/auth/login-actions.ts`에서 아이디 → 실제 auth 이메일로 변환 후 처리하며,
+  신규 계정은 `{username}@wakidoki.local` 형태의 내부 전용 이메일로 생성됩니다
 
 ## 로컬 검증
 

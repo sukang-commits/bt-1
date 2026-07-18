@@ -9,15 +9,16 @@ npm run seed:accounts   # 역할별 테스트 계정 5개 생성
 npm run seed:demo       # 01호점 중심 데모 데이터 생성
 ```
 
-테스트 계정(공통 비밀번호 `Wakidoki!2026`):
+테스트 계정(공통 비밀번호 `Wakidoki!2026`). 로그인은 이메일이 아니라 **아이디**로
+하며, 아래 아이디는 이메일의 `@` 앞부분과 동일합니다 (`0018_username_login.sql` 적용 후):
 
-| 이메일 | 역할 | 매장 |
+| 아이디 | 역할 | 매장 |
 | --- | --- | --- |
-| worker@wakidoki.test | 근무자 (실버) | 01호점 |
-| store-manager@wakidoki.test | 매장 관리자 (골드) | 01호점 |
-| senior-manager@wakidoki.test | 선임점장 (다이아) | 없음 (전 매장) |
-| deputy-manager@wakidoki.test | 대리 (퀸비) | 없음 (전 매장) |
-| administrator@wakidoki.test | 전체 관리자 (챌린저) | 없음 (전 매장) |
+| worker | 근무자 (실버) | 01호점 |
+| store-manager | 매장 관리자 (골드) | 01호점 |
+| senior-manager | 선임점장 (다이아) | 없음 (전 매장) |
+| deputy-manager | 대리 (퀸비) | 없음 (전 매장) |
+| administrator | 전체 관리자 (챌린저) | 없음 (전 매장) |
 
 ## 필수 시나리오
 

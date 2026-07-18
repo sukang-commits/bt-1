@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AccountRow } from "@/components/accounts/AccountRow";
+import { CreateAccountForm } from "@/components/accounts/CreateAccountForm";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 
@@ -10,22 +11,32 @@ export default async function AdminAccountsPage() {
   }
 
   const supabase = await createServerSupabaseClient();
-  const { data: profiles } = await supabase.from("profiles").select("*").order("name");
+  const [{ data: profiles }, { data: stores }] = await Promise.all([
+    supabase.from("profiles").select("*").order("name"),
+    supabase.from("stores").select("id, name").order("code"),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-xl font-bold text-ink">계정 및 권한관리</h1>
         <p className="text-sm text-muted">
-          역할 변경과 활성/비활성 처리만 지원합니다. 신규 계정 발급은{" "}
-          <code className="rounded bg-subtle px-1 py-0.5">npm run seed:accounts</code> 또는 Supabase Auth Admin
-          API를 사용해 주세요.
+          아이디/비밀번호를 발급하고, 역할 변경·비밀번호 재설정·활성화 여부를 관리합니다.
         </p>
       </div>
 
+      <CreateAccountForm stores={stores ?? []} />
+
       <div className="flex flex-col gap-2">
         {(profiles ?? []).map((p) => (
-          <AccountRow key={p.id} profileId={p.id} name={p.name} role={p.role} active={p.active} />
+          <AccountRow
+            key={p.id}
+            profileId={p.id}
+            username={p.username}
+            name={p.name}
+            role={p.role}
+            active={p.active}
+          />
         ))}
       </div>
     </div>

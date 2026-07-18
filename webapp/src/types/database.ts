@@ -78,6 +78,7 @@ export type AttachmentRow = {
 
 export type ProfileRow = Timestamps & {
   id: string;
+  username: string;
   name: string;
   phone: string | null;
   role: UserRoleEnum;
