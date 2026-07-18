@@ -98,7 +98,7 @@ export function CreateAccountForm({ stores }: { stores: { id: string; name: stri
         <input
           type="text"
           className="h-11 w-full rounded-xl border border-border bg-page px-3 text-sm text-ink"
-          placeholder="8자 이상"
+          placeholder="4자 이상"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />

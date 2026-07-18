@@ -68,8 +68,8 @@ export function AccountRow({
   };
 
   const handleResetPassword = async () => {
-    if (newPassword.length < 8) {
-      showToast("비밀번호는 8자 이상으로 입력해 주세요", { variant: "warning" });
+    if (newPassword.length < 4) {
+      showToast("비밀번호는 4자 이상으로 입력해 주세요", { variant: "warning" });
       return;
     }
     setLoading(true);
@@ -123,7 +123,7 @@ export function AccountRow({
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
           <input
             type="text"
-            placeholder="새 비밀번호 (8자 이상)"
+            placeholder="새 비밀번호 (4자 이상)"
             className="h-10 flex-1 rounded-lg border border-border bg-page px-2 text-sm text-ink"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}

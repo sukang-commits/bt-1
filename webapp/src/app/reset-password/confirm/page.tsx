@@ -12,7 +12,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 const schema = z
   .object({
-    password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
+    password: z.string().min(4, "비밀번호는 4자 이상이어야 합니다."),
     passwordConfirm: z.string().min(1, "비밀번호를 한 번 더 입력해 주세요."),
   })
   .refine((values) => values.password === values.passwordConfirm, {
@@ -76,7 +76,7 @@ export default function ResetPasswordConfirmPage() {
                 id="password"
                 type="password"
                 autoComplete="new-password"
-                placeholder="8자 이상 입력하세요"
+                placeholder="4자 이상 입력하세요"
                 className="h-14 w-full rounded-xl border border-border bg-page pl-11 pr-3 text-base text-ink outline-none focus:border-brand-dark focus:ring-2 focus:ring-brand/40"
                 {...register("password")}
               />

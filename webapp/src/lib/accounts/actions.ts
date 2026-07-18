@@ -75,8 +75,8 @@ export async function createAccount(input: CreateAccountInput) {
   if (!USERNAME_PATTERN.test(username)) {
     throw new Error("아이디는 영문 소문자/숫자/.-_ 조합 3~20자로 입력해 주세요.");
   }
-  if (input.password.length < 8) {
-    throw new Error("비밀번호는 8자 이상으로 설정해 주세요.");
+  if (input.password.length < 4) {
+    throw new Error("비밀번호는 4자 이상으로 설정해 주세요.");
   }
   if (!input.name.trim()) {
     throw new Error("이름을 입력해 주세요.");
@@ -137,8 +137,8 @@ export async function createAccount(input: CreateAccountInput) {
 
 export async function resetAccountPassword(profileId: string, newPassword: string) {
   const user = await assertAdmin();
-  if (newPassword.length < 8) {
-    throw new Error("비밀번호는 8자 이상으로 설정해 주세요.");
+  if (newPassword.length < 4) {
+    throw new Error("비밀번호는 4자 이상으로 설정해 주세요.");
   }
 
   const admin = createAdminSupabaseClient();
