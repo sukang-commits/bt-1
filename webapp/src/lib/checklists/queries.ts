@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BrandTypeEnum, ChecklistSubmissionStatusEnum, Database } from "@/types/database";
+import type { BrandTypeEnum, ChecklistSubmissionRow, ChecklistSubmissionStatusEnum, Database } from "@/types/database";
 import { getAttachmentSignedUrl } from "@/lib/storage/upload";
 
 type Client = SupabaseClient<Database>;
@@ -50,6 +50,28 @@ export async function getChecklistWithItems(supabase: Client, checklistId: strin
       .order("sort_order"),
   ]);
   return { checklist, items: items ?? [] };
+}
+
+// 체크리스트 목록 화면은 각 항목의 "오늘 제출 상태"(뱃지/진행률)만 필요하고
+// 항목별 세부 제출 내역은 쓰지 않는데도, 체크리스트마다 getSubmissionForToday를
+// 따로 호출하면 목록 하나당 최대 checklist 개수 x 2번의 쿼리가 발생합니다.
+// checklist_id 목록으로 한 번에 조회해 N+1을 없앱니다.
+export async function listSubmissionStatusForToday(
+  supabase: Client,
+  checklistIds: string[],
+  profileId: string,
+  workDate: string
+) {
+  if (checklistIds.length === 0) return new Map<string, ChecklistSubmissionRow>();
+
+  const { data } = await supabase
+    .from("checklist_submissions")
+    .select("*")
+    .in("checklist_id", checklistIds)
+    .eq("profile_id", profileId)
+    .eq("work_date", workDate);
+
+  return new Map((data ?? []).map((s) => [s.checklist_id, s]));
 }
 
 export async function getSubmissionForToday(

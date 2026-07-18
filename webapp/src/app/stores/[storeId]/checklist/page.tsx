@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { listChecklistsForStore, getSubmissionForToday } from "@/lib/checklists/queries";
+import { listChecklistsForStore, listSubmissionStatusForToday } from "@/lib/checklists/queries";
 import { CHECKLIST_TYPE_LABEL, SUBMISSION_STATUS_LABEL } from "@/lib/checklists/types";
 import { todayKst } from "@/lib/date";
 
@@ -25,12 +25,16 @@ export default async function StoreChecklistPage({
     ["senior_manager", "deputy_manager", "administrator"].includes(user.role) ||
     (user.role === "store_manager" && user.storeId === storeId);
 
-  const withStatus = await Promise.all(
-    checklists.map(async (c) => {
-      const { submission } = await getSubmissionForToday(supabase, c.id, user.id, today);
-      return { checklist: c, submission };
-    })
+  const submissionByChecklistId = await listSubmissionStatusForToday(
+    supabase,
+    checklists.map((c) => c.id),
+    user.id,
+    today
   );
+  const withStatus = checklists.map((checklist) => ({
+    checklist,
+    submission: submissionByChecklistId.get(checklist.id) ?? null,
+  }));
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
