@@ -18,8 +18,8 @@ export default async function StoreChecklistPage({
   if (!user) return null;
 
   const supabase = await createServerSupabaseClient();
-  const checklists = await listChecklistsForStore(supabase, storeId, user.brandType);
   const today = todayKst();
+  const checklists = await listChecklistsForStore(supabase, storeId, user.brandType, today);
 
   const canReview =
     ["senior_manager", "deputy_manager", "administrator"].includes(user.role) ||

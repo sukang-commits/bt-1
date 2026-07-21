@@ -144,6 +144,8 @@ export type ChecklistRow = Timestamps & {
   name: string;
   active: boolean;
   deleted_at: string | null;
+  schedule_day_of_week: number | null;
+  schedule_week_of_month: number | null;
 };
 
 export type ChecklistItemRow = Timestamps & {
@@ -158,6 +160,7 @@ export type ChecklistItemRow = Timestamps & {
   sort_order: number;
   active: boolean;
   deleted_at: string | null;
+  example_photo_attachment_id: string | null;
 };
 
 export type ChecklistSubmissionRow = Timestamps & {

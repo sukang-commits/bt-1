@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { todayKst } from "@/lib/date";
 import { checklistItemPhotoRequirement, isPhotoRequiredNow } from "@/lib/grades/policy";
+import { isChecklistDueOn } from "@/lib/checklists/schedule";
 import { notifyProfile } from "@/lib/notifications/notify";
 import type { BrandTypeEnum, ChecklistTypeEnum, EmployeeGradeEnum, WorkShiftEnum } from "@/types/database";
 
@@ -28,10 +29,24 @@ export interface ChecklistTemplateInput {
   brandType: BrandTypeEnum;
   type: ChecklistTypeEnum;
   name: string;
+  scheduleDayOfWeek: number | null;
+  scheduleWeekOfMonth: number | null;
+}
+
+function assertValidSchedule(type: ChecklistTypeEnum, dayOfWeek: number | null, weekOfMonth: number | null) {
+  if (type !== "weekly" && type !== "monthly") return;
+  if (dayOfWeek !== null && (dayOfWeek < 0 || dayOfWeek > 6)) {
+    throw new Error("요일 값이 올바르지 않습니다.");
+  }
+  if (type === "monthly" && weekOfMonth !== null && (weekOfMonth < 1 || weekOfMonth > 5)) {
+    throw new Error("주차 값이 올바르지 않습니다.");
+  }
 }
 
 export async function createChecklistTemplate(input: ChecklistTemplateInput) {
   await assertCanManageChecklist(input.storeId);
+  assertValidSchedule(input.type, input.scheduleDayOfWeek, input.scheduleWeekOfMonth);
+
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("checklists")
@@ -40,6 +55,8 @@ export async function createChecklistTemplate(input: ChecklistTemplateInput) {
       brand_type: input.brandType,
       type: input.type,
       name: input.name,
+      schedule_day_of_week: input.type === "weekly" || input.type === "monthly" ? input.scheduleDayOfWeek : null,
+      schedule_week_of_month: input.type === "monthly" ? input.scheduleWeekOfMonth : null,
     })
     .select("id")
     .single();
@@ -49,13 +66,28 @@ export async function createChecklistTemplate(input: ChecklistTemplateInput) {
   return data.id;
 }
 
-export async function updateChecklistTemplate(id: string, input: { name: string; active: boolean }) {
+export interface ChecklistTemplateUpdateInput {
+  name: string;
+  active: boolean;
+  scheduleDayOfWeek: number | null;
+  scheduleWeekOfMonth: number | null;
+}
+
+export async function updateChecklistTemplate(id: string, input: ChecklistTemplateUpdateInput) {
   const supabase = await createServerSupabaseClient();
   const { data: before } = await supabase.from("checklists").select("*").eq("id", id).maybeSingle();
   if (!before) throw new Error("체크리스트를 찾을 수 없습니다.");
   const user = await assertCanManageChecklist(before.store_id);
+  assertValidSchedule(before.type, input.scheduleDayOfWeek, input.scheduleWeekOfMonth);
 
-  const { error } = await supabase.from("checklists").update(input).eq("id", id);
+  const payload = {
+    name: input.name,
+    active: input.active,
+    schedule_day_of_week: before.type === "weekly" || before.type === "monthly" ? input.scheduleDayOfWeek : null,
+    schedule_week_of_month: before.type === "monthly" ? input.scheduleWeekOfMonth : null,
+  };
+
+  const { error } = await supabase.from("checklists").update(payload).eq("id", id);
   if (error) throw error;
 
   await supabase.rpc("log_audit_event", {
@@ -64,7 +96,7 @@ export async function updateChecklistTemplate(id: string, input: { name: string;
     p_target_table: "checklists",
     p_target_id: id,
     p_before_data: before,
-    p_after_data: input,
+    p_after_data: payload,
   });
 
   revalidatePath(`/admin/checklists/${id}`);
@@ -79,6 +111,7 @@ export interface ChecklistItemInput {
   isCore: boolean;
   workShift: WorkShiftEnum | null;
   sortOrder: number;
+  exampleAttachmentId: string | null;
 }
 
 async function getChecklistStoreId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, checklistId: string) {
@@ -101,6 +134,7 @@ export async function addChecklistItem(checklistId: string, input: ChecklistItem
     is_core: input.isCore,
     work_shift: input.workShift,
     sort_order: input.sortOrder,
+    example_photo_attachment_id: input.exampleAttachmentId,
   });
   if (error) throw error;
   revalidatePath(`/admin/checklists/${checklistId}`);
@@ -156,6 +190,19 @@ export async function submitChecklist(
 
   const supabase = await createServerSupabaseClient();
   const workDate = todayKst();
+
+  // 주간/월간 체크리스트에 요일·주차 일정이 지정되어 있으면, 그 날짜가 아닐 때 목록 화면에서는
+  // 숨겨지지만 URL을 직접 알면 우회 제출할 수 있으므로 서버에서도 다시 검증합니다.
+  const { data: checklist } = await supabase
+    .from("checklists")
+    .select("type, schedule_day_of_week, schedule_week_of_month")
+    .eq("id", checklistId)
+    .maybeSingle();
+  if (!checklist) throw new Error("체크리스트를 찾을 수 없습니다.");
+  if (!isChecklistDueOn(workDate, checklist.type, checklist.schedule_day_of_week, checklist.schedule_week_of_month)) {
+    throw new Error("오늘은 이 체크리스트를 제출하는 날이 아닙니다.");
+  }
+
   const progressRate = items.length === 0 ? 0 : Math.round((items.filter((i) => i.checked).length / items.length) * 1000) / 10;
 
   // checklist_submissions_unique_per_day 제약(checklist_id, profile_id, work_date) 덕분에

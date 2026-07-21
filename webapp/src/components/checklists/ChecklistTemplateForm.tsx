@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/providers/ToastProvider";
 import { createChecklistTemplate } from "@/lib/checklists/actions";
 import { CHECKLIST_TYPE_LABEL } from "@/lib/checklists/types";
+import { ChecklistScheduleFields } from "@/components/checklists/ChecklistScheduleFields";
 import { BRAND_LABELS } from "@/types/domain";
 import type { BrandTypeEnum, ChecklistTypeEnum } from "@/types/database";
 
@@ -17,6 +18,8 @@ export function ChecklistTemplateForm({ stores }: { stores: { id: string; name: 
   const [type, setType] = useState<ChecklistTypeEnum>("open");
   const [brandType, setBrandType] = useState<BrandTypeEnum>("pc");
   const [storeId, setStoreId] = useState<string>("");
+  const [dayOfWeek, setDayOfWeek] = useState<number | null>(null);
+  const [weekOfMonth, setWeekOfMonth] = useState<number | null>(null);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -30,6 +33,8 @@ export function ChecklistTemplateForm({ stores }: { stores: { id: string; name: 
         brandType,
         type,
         name,
+        scheduleDayOfWeek: dayOfWeek,
+        scheduleWeekOfMonth: weekOfMonth,
       });
       showToast("템플릿을 생성했습니다", { variant: "success" });
       router.push(`/admin/checklists/${id}`);
@@ -68,6 +73,14 @@ export function ChecklistTemplateForm({ stores }: { stores: { id: string; name: 
           ))}
         </select>
       </div>
+
+      <ChecklistScheduleFields
+        type={type}
+        dayOfWeek={dayOfWeek}
+        weekOfMonth={weekOfMonth}
+        onDayOfWeekChange={setDayOfWeek}
+        onWeekOfMonthChange={setWeekOfMonth}
+      />
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-ink">브랜드</label>

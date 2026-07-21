@@ -5,20 +5,30 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/providers/ToastProvider";
 import { updateChecklistTemplate } from "@/lib/checklists/actions";
+import { ChecklistScheduleFields } from "@/components/checklists/ChecklistScheduleFields";
+import type { ChecklistTypeEnum } from "@/types/database";
 
 export function ChecklistTemplateEditForm({
   checklistId,
+  type,
   initialName,
   initialActive,
+  initialScheduleDayOfWeek,
+  initialScheduleWeekOfMonth,
 }: {
   checklistId: string;
+  type: ChecklistTypeEnum;
   initialName: string;
   initialActive: boolean;
+  initialScheduleDayOfWeek: number | null;
+  initialScheduleWeekOfMonth: number | null;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [name, setName] = useState(initialName);
   const [active, setActive] = useState(initialActive);
+  const [dayOfWeek, setDayOfWeek] = useState(initialScheduleDayOfWeek);
+  const [weekOfMonth, setWeekOfMonth] = useState(initialScheduleWeekOfMonth);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -28,7 +38,12 @@ export function ChecklistTemplateEditForm({
     }
     setSubmitting(true);
     try {
-      await updateChecklistTemplate(checklistId, { name, active });
+      await updateChecklistTemplate(checklistId, {
+        name,
+        active,
+        scheduleDayOfWeek: dayOfWeek,
+        scheduleWeekOfMonth: weekOfMonth,
+      });
       showToast("템플릿 정보를 저장했습니다", { variant: "success" });
       router.refresh();
     } catch (error) {
@@ -52,6 +67,15 @@ export function ChecklistTemplateEditForm({
           onChange={(e) => setName(e.target.value)}
         />
       </div>
+
+      <ChecklistScheduleFields
+        type={type}
+        dayOfWeek={dayOfWeek}
+        weekOfMonth={weekOfMonth}
+        onDayOfWeekChange={setDayOfWeek}
+        onWeekOfMonthChange={setWeekOfMonth}
+      />
+
       <label className="flex items-center gap-2 text-sm text-ink">
         <input type="checkbox" className="h-5 w-5" checked={active} onChange={(e) => setActive(e.target.checked)} />
         사용 중 (해제하면 근무자 화면에 노출되지 않습니다)

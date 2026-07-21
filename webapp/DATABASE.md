@@ -62,6 +62,15 @@ SECURITY DEFINER 함수를 통해서만 기록됩니다 (알림 위조 방지).
   본인 매장 전용(`store_id`가 자기 매장) 템플릿/업무를 직접 관리할 수 있게 했습니다.
   브랜드 공통 템플릿(`store_id is null`)은 여러 매장에 동시 적용되므로 계속
   상위 관리자 전용입니다
+- `checklists.schedule_day_of_week`/`schedule_week_of_month`(`0021`): weekly/monthly
+  타입 체크리스트를 "매주 화요일", "매월 둘째 주 금요일"처럼 특정 요일에만 노출되도록
+  설정할 수 있습니다. 둘 다 비어있으면(기존 템플릿) 하위 호환으로 매일 노출됩니다.
+  판단 로직은 `lib/checklists/schedule.ts`(순수 함수, 단위 테스트 있음)에 있고
+  `submitChecklist()`에서도 다시 검증해 일정이 아닌 날 URL 직접 접근으로 우회 제출하는
+  것을 막습니다
+- `checklist_items.example_photo_attachment_id`(`0021`): 항목마다 "이렇게 처리하세요"
+  예시 사진을 첨부해 근무자가 제출 화면에서 참고할 수 있습니다. 항목 설명(`description`)도
+  이번에 관리 화면에 입력 필드가 추가되어 실제로 쓸 수 있게 됨 (컬럼 자체는 이전부터 있었음)
 
 ## 로컬 검증
 

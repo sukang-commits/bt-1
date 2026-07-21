@@ -65,7 +65,7 @@ src/
   types/          도메인 타입, Supabase Database 타입
   proxy.ts        라우트 보호 (Next.js 16의 middleware.ts 대체)
 supabase/
-  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0020)
+  migrations/     스키마 + RLS 정책 SQL (순서대로 적용, 0001~0021)
   seed.sql        16개 매장 초기 데이터
 scripts/
   seed-test-accounts.ts   테스트 계정 5개 생성

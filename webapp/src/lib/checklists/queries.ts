@@ -1,10 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BrandTypeEnum, ChecklistSubmissionRow, ChecklistSubmissionStatusEnum, Database } from "@/types/database";
 import { getAttachmentSignedUrl } from "@/lib/storage/upload";
+import { isChecklistDueOn } from "@/lib/checklists/schedule";
 
 type Client = SupabaseClient<Database>;
 
-export async function listChecklistsForStore(supabase: Client, storeId: string, brandType: BrandTypeEnum) {
+// 근무자에게 보여줄 목록. weekly/monthly 타입 중 요일/주차 일정이 지정된
+// 템플릿은 그 날짜에 해당할 때만 노출합니다 (예: "매월 둘째 주 화요일").
+export async function listChecklistsForStore(
+  supabase: Client,
+  storeId: string,
+  brandType: BrandTypeEnum,
+  workDate: string
+) {
   const { data } = await supabase
     .from("checklists")
     .select("*")
@@ -13,7 +21,10 @@ export async function listChecklistsForStore(supabase: Client, storeId: string, 
     .or(`store_id.eq.${storeId},store_id.is.null`)
     .eq("brand_type", brandType)
     .order("type");
-  return data ?? [];
+
+  return (data ?? []).filter((c) =>
+    isChecklistDueOn(workDate, c.type, c.schedule_day_of_week, c.schedule_week_of_month)
+  );
 }
 
 // 매장 관리자가 "매장 업무 관리" 화면에서 보는 목록. 매장 전용 템플릿(수정 가능)과

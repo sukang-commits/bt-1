@@ -105,7 +105,14 @@ async function main() {
   console.log("2) 체크리스트 템플릿 생성...");
   const checklistRes = await admin
     .from("checklists")
-    .insert({ store_id: storeId, brand_type: "pc", type: "open", name: "오픈 체크리스트" })
+    .insert({
+      store_id: storeId,
+      brand_type: "pc",
+      type: "open",
+      name: "오픈 체크리스트",
+      schedule_day_of_week: null,
+      schedule_week_of_month: null,
+    })
     .select("id")
     .single();
   const checklist = must(checklistRes.data, checklistRes.error);
@@ -118,7 +125,15 @@ async function main() {
   ];
   const itemsRes = await admin
     .from("checklist_items")
-    .insert(itemsInput.map((i) => ({ checklist_id: checklist.id, description: null, work_shift: "open" as const, ...i })))
+    .insert(
+      itemsInput.map((i) => ({
+        checklist_id: checklist.id,
+        description: null,
+        work_shift: "open" as const,
+        example_photo_attachment_id: null,
+        ...i,
+      }))
+    )
     .select("id, is_required");
   const items = must(itemsRes.data, itemsRes.error);
 

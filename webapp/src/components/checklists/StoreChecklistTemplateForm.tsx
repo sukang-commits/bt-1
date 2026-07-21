@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/providers/ToastProvider";
 import { createChecklistTemplate } from "@/lib/checklists/actions";
 import { CHECKLIST_TYPE_LABEL } from "@/lib/checklists/types";
+import { ChecklistScheduleFields } from "@/components/checklists/ChecklistScheduleFields";
 import type { BrandTypeEnum, ChecklistTypeEnum } from "@/types/database";
 
 // 매장 관리자가 자기 매장 전용 체크리스트를 만드는 화면. 관리자용 ChecklistTemplateForm과
@@ -16,6 +17,8 @@ export function StoreChecklistTemplateForm({ storeId, brandType }: { storeId: st
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<ChecklistTypeEnum>("open");
+  const [dayOfWeek, setDayOfWeek] = useState<number | null>(null);
+  const [weekOfMonth, setWeekOfMonth] = useState<number | null>(null);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -24,7 +27,14 @@ export function StoreChecklistTemplateForm({ storeId, brandType }: { storeId: st
     }
     setSubmitting(true);
     try {
-      const id = await createChecklistTemplate({ storeId, brandType, type, name });
+      const id = await createChecklistTemplate({
+        storeId,
+        brandType,
+        type,
+        name,
+        scheduleDayOfWeek: dayOfWeek,
+        scheduleWeekOfMonth: weekOfMonth,
+      });
       showToast("템플릿을 생성했습니다", { variant: "success" });
       router.push(`/stores/${storeId}/checklist/manage/${id}`);
     } catch (error) {
@@ -62,6 +72,14 @@ export function StoreChecklistTemplateForm({ storeId, brandType }: { storeId: st
           ))}
         </select>
       </div>
+
+      <ChecklistScheduleFields
+        type={type}
+        dayOfWeek={dayOfWeek}
+        weekOfMonth={weekOfMonth}
+        onDayOfWeekChange={setDayOfWeek}
+        onWeekOfMonthChange={setWeekOfMonth}
+      />
 
       <Button size="lg" loading={submitting} onClick={handleSubmit}>
         템플릿 생성

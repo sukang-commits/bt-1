@@ -40,8 +40,9 @@ export default async function ChecklistDetailPage({
     ? await getSubmissionById(supabase, submissionId!)
     : await getSubmissionForToday(supabase, checklistId, user.id, todayKst());
 
-  const photoIds = itemSubmissions.map((s) => s.photo_attachment_id).filter((id): id is string => Boolean(id));
-  const photoUrls = await getAttachmentSignedUrls(supabase, photoIds);
+  const submittedPhotoIds = itemSubmissions.map((s) => s.photo_attachment_id).filter((id): id is string => Boolean(id));
+  const exampleIds = items.map((i) => i.example_photo_attachment_id).filter((id): id is string => Boolean(id));
+  const photoUrls = await getAttachmentSignedUrls(supabase, [...submittedPhotoIds, ...exampleIds]);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">

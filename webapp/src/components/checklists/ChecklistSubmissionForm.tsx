@@ -150,6 +150,24 @@ export function ChecklistSubmissionForm({
                     {item.is_core && <span className="ml-1 text-xs text-warning">핵심</span>}
                   </p>
                   {item.description && <p className="text-sm text-muted">{item.description}</p>}
+                  {item.example_photo_attachment_id && (
+                    <div className="mt-2">
+                      <p className="mb-1 text-xs text-muted">예시 사진 (이렇게 처리해 주세요)</p>
+                      <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-border">
+                        {photoUrls[item.example_photo_attachment_id] ? (
+                          <Image
+                            src={photoUrls[item.example_photo_attachment_id]}
+                            alt="예시 사진"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-muted">-</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </label>
 

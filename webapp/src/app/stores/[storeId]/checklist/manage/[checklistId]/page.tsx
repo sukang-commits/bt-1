@@ -4,7 +4,7 @@ import { ChecklistItemManager } from "@/components/checklists/ChecklistItemManag
 import { ChecklistTemplateEditForm } from "@/components/checklists/ChecklistTemplateEditForm";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { getChecklistWithItems } from "@/lib/checklists/queries";
+import { getAttachmentSignedUrls, getChecklistWithItems } from "@/lib/checklists/queries";
 import { CHECKLIST_TYPE_LABEL } from "@/lib/checklists/types";
 
 export default async function StoreChecklistManageDetailPage({
@@ -31,6 +31,9 @@ export default async function StoreChecklistManageDetailPage({
     redirect(`/stores/${storeId}/checklist/manage`);
   }
 
+  const exampleIds = items.map((i) => i.example_photo_attachment_id).filter((id): id is string => Boolean(id));
+  const examplePhotoUrls = await getAttachmentSignedUrls(supabase, exampleIds);
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <Link href={`/stores/${storeId}/checklist/manage`} className="text-sm text-muted">
@@ -39,8 +42,21 @@ export default async function StoreChecklistManageDetailPage({
       <h1 className="text-xl font-bold text-ink">
         {CHECKLIST_TYPE_LABEL[checklist.type]} · {checklist.name}
       </h1>
-      <ChecklistTemplateEditForm checklistId={checklistId} initialName={checklist.name} initialActive={checklist.active} />
-      <ChecklistItemManager checklistId={checklistId} items={items} />
+      <ChecklistTemplateEditForm
+        checklistId={checklistId}
+        type={checklist.type}
+        initialName={checklist.name}
+        initialActive={checklist.active}
+        initialScheduleDayOfWeek={checklist.schedule_day_of_week}
+        initialScheduleWeekOfMonth={checklist.schedule_week_of_month}
+      />
+      <ChecklistItemManager
+        checklistId={checklistId}
+        storeId={checklist.store_id ?? "global"}
+        userId={user.id}
+        items={items}
+        examplePhotoUrls={examplePhotoUrls}
+      />
     </div>
   );
 }
